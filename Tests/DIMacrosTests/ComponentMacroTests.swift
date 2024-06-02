@@ -36,6 +36,52 @@ extension EmptyComponent: DI.Component {
         )
     }
 
+    func testRootComponent() {
+        assertMacroExpansion("""
+@Component(root: true)
+struct RootComponent {
+}
+""", expandedSource: """
+struct RootComponent {
+
+    var container: DI.Container
+
+    init() {
+
+        container = parent.container
+
+    }
+}
+
+extension RootComponent: DI.Component {
+}
+""", macros: macros
+        )
+    }
+
+    func testRootComponent_missingReqiurements() {
+        assertMacroExpansion("""
+@Component(root: true)
+struct RootComponent {
+    var foo: Int {
+        return get(barKey) + 1
+    }
+}
+""", expandedSource: """
+struct RootComponent {
+    var foo: Int {
+        return get(barKey) + 1
+    }
+}
+
+extension RootComponent: DI.Component {
+}
+""", diagnostics: [
+    .init(message: "root component must provide all required values. missing: barKey", line: 1, column: 1),
+], macros: macros
+        )
+    }
+
     func testBasic() {
         assertMacroExpansion(#"""
 @Component

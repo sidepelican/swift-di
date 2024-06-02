@@ -3,6 +3,28 @@ import SwiftSyntax
 import SwiftSyntaxMacros
 
 public struct ComponentMacro: MemberMacro, ExtensionMacro {
+    private struct Arguments {
+        var root: Bool?
+    }
+
+    private static func extractArguments(from attribute: AttributeSyntax) throws -> Arguments {
+        var result = Arguments()
+        guard let arguments = attribute.arguments?.as(LabeledExprListSyntax.self) else {
+            return result
+        }
+        for argument in arguments {
+            if argument.label?.text == "root",
+               let literal = argument.expression.as(BooleanLiteralExprSyntax.self) {
+                switch literal.literal.text {
+                case "true": result.root = true
+                case "false": result.root = false
+                default: throw MessageError("Unexpected literal.")
+                }
+            }
+        }
+        return result
+    }
+
     // MARK: - MemberMacro
 
     public static func expansion(
@@ -11,6 +33,8 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
+        let argument = try extractArguments(from: node)
+        let isRoot = argument.root ?? false
         guard let structDecl = declaration.as(StructDeclSyntax.self) else {
             throw MessageError("Expected a struct declaration.")
         }
@@ -38,18 +62,25 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
             }
         }
 
-        return [
-            """
+        if isRoot && !requiredKeys.isEmpty {
+            throw MessageError("root component must provide all required values. missing: \(requiredKeys.joined(separator: ", "))")
+        }
+
+        var result: [DeclSyntax] = []
+        if !isRoot {
+            result.append("""
             static var requirements: Set<DI.AnyKey> {
                 [\(raw: requiredKeys.sorted().joined(separator: ", "))]
             }
-            """,
-            "var container: DI.Container",
-            buildInitDecl(
-                requiredKeys: requiredKeys,
-                providingKeys: providingKeys
-            ),
-        ]
+            """)
+        }
+        result.append("var container: DI.Container")
+        result.append(buildInitDecl(
+            isRoot: isRoot,
+            requiredKeys: requiredKeys,
+            providingKeys: providingKeys
+        ))
+        return result
     }
 
     // MARK: - ExtensionMacro
@@ -71,8 +102,12 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
     }
 }
 
-private func buildInitDecl(requiredKeys: Set<String>, providingKeys: Set<String>) -> DeclSyntax {
-    let assertExpr = requiredKeys.isEmpty ? "" : """
+private func buildInitDecl(
+    isRoot: Bool,
+    requiredKeys: Set<String>,
+    providingKeys: Set<String>
+) -> DeclSyntax {
+    let assertExpr = requiredKeys.isEmpty || isRoot ? "" : """
     assert(Self.requirements.subtracting(parent.container.storage.keys).isEmpty)
     """ as ExprSyntax
 
@@ -80,8 +115,10 @@ private func buildInitDecl(requiredKeys: Set<String>, providingKeys: Set<String>
         .sorted()
         .map { "container.set(\(raw: $0), provide: __provide__\(raw: $0))" as CodeBlockItemSyntax }
 
+    let argList: FunctionParameterSyntax = isRoot ? "" : "parent: some DI.Component"
+
     return """
-    init(parent: some DI.Component) {
+    init(\(argList)) {
         \(assertExpr)
         container = parent.container
         \(CodeBlockItemListSyntax(provideSet))
