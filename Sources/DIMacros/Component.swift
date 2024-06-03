@@ -41,6 +41,7 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
 
         var requiredKeys = Set<String>()
         var providingKeys = Set<String>()
+        var hasInitDecl = false
 
         for member in structDecl.memberBlock.members {
             if let functionDecl = member.decl.as(FunctionDeclSyntax.self) {
@@ -59,27 +60,33 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
             } else if let varDecl = member.decl.as(VariableDeclSyntax.self),
                       let computedProp = varDecl.bindings.first?.accessorBlock {
                 requiredKeys.formUnion(findKeysUsingGet(in: computedProp))
+            } else if let _ = member.decl.as(InitializerDeclSyntax.self) {
+                hasInitDecl = true
             }
         }
 
+        let missingKeys = requiredKeys.subtracting(providingKeys).sorted()
         if isRoot {
-            let missing = requiredKeys.subtracting(providingKeys).sorted()
-            guard missing.isEmpty else {
-                throw MessageError("root component must provide all required values. missing: \(missing.joined(separator: ", "))")
+            guard missingKeys.isEmpty else {
+                throw MessageError("root component must provide all required values. missing: \(missingKeys.joined(separator: ", "))")
             }
         }
 
         var result: [DeclSyntax] = []
-        if !isRoot {
-            result.append("""
-            static var requirements: Set<DI.AnyKey> {
-                [\(raw: requiredKeys.sorted().joined(separator: ", "))]
-            }
-            """)
+        result.append("""
+        static var requirements: Set<DI.AnyKey> {
+            [\(raw: missingKeys.joined(separator: ", "))]
         }
-        result.append("var container: DI.Container")
-        result.append(buildInitDecl(
-            isRoot: isRoot,
+        """)
+        result.append("var container = DI.Container()")
+        if !hasInitDecl {
+            result.append(buildInitDecl(
+                isRoot: isRoot,
+                requiredKeys: requiredKeys,
+                providingKeys: providingKeys
+            ))
+        }
+        result.append(buildInitContainer(
             requiredKeys: requiredKeys,
             providingKeys: providingKeys
         ))
@@ -110,30 +117,40 @@ private func buildInitDecl(
     requiredKeys: Set<String>,
     providingKeys: Set<String>
 ) -> DeclSyntax {
+    if isRoot {
+        return """
+        init() {
+            initContainer(parent: self)
+        }
+        """
+    } else {
+        return """
+        init(parent: some DI.Component) {
+            initContainer(parent: parent)
+        }
+        """
+    }
+}
+
+private func buildInitContainer(
+    requiredKeys: Set<String>,
+    providingKeys: Set<String>
+) -> DeclSyntax {
+    let assertExpr = requiredKeys.isEmpty ? "" : """
+        assert(Self.requirements.subtracting(parent.container.keys).isEmpty)
+        """ as ExprSyntax
+
     let provideSet = providingKeys
         .sorted()
         .map { "container.set(\(raw: $0), provide: __provide_\(raw: $0))" as CodeBlockItemSyntax }
 
-    if isRoot {
-        return """
-        init() {
-            container = .init()
-            \(CodeBlockItemListSyntax(provideSet))
-        }
-        """
-    } else {
-        let assertExpr = requiredKeys.isEmpty ? "" : """
-        assert(Self.requirements.subtracting(parent.container.keys).isEmpty)
-        """ as ExprSyntax
-
-        return """
-        init(parent: some DI.Component) {
-            \(assertExpr)
-            container = parent.container
-            \(CodeBlockItemListSyntax(provideSet))
-        }
-        """
+    return """
+    private mutating func initContainer(parent: some DI.Component) {
+        \(assertExpr)
+        container = parent.container
+        \(CodeBlockItemListSyntax(provideSet))
     }
+    """
 }
 
 private func extractKey(from attribute: AttributeSyntax) -> String? {

@@ -5,8 +5,8 @@ struct AuthenticatedComponent {
     var user: User
 
     init(parent: some DI.Component, user: User) {
-        self.init(parent: parent)
         self.user = user
+        initContainer(parent: parent)
     }
 
     func userController() -> UserController {
