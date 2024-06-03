@@ -62,8 +62,11 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
             }
         }
 
-        if isRoot && !requiredKeys.isEmpty {
-            throw MessageError("root component must provide all required values. missing: \(requiredKeys.joined(separator: ", "))")
+        if isRoot {
+            let missing = requiredKeys.subtracting(providingKeys).sorted()
+            guard missing.isEmpty else {
+                throw MessageError("root component must provide all required values. missing: \(missing.joined(separator: ", "))")
+            }
         }
 
         var result: [DeclSyntax] = []
@@ -109,7 +112,7 @@ private func buildInitDecl(
 ) -> DeclSyntax {
     let provideSet = providingKeys
         .sorted()
-        .map { "container.set(\(raw: $0), provide: __provide__\(raw: $0))" as CodeBlockItemSyntax }
+        .map { "container.set(\(raw: $0), provide: __provide_\(raw: $0))" as CodeBlockItemSyntax }
 
     if isRoot {
         return """
@@ -120,7 +123,7 @@ private func buildInitDecl(
         """
     } else {
         let assertExpr = requiredKeys.isEmpty ? "" : """
-        assert(Self.requirements.subtracting(parent.container.storage.keys).isEmpty)
+        assert(Self.requirements.subtracting(parent.container.keys).isEmpty)
         """ as ExprSyntax
 
         return """

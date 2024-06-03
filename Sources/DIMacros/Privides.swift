@@ -22,7 +22,7 @@ public struct ProvidesMacro: PeerMacro {
         }
 
         return ["""
-        func __provide__\(keyIdentifier)(c: Container) -> \(returnType.trimmed) {
+        func __provide_\(keyIdentifier)(c: DI.Container) -> \(returnType.trimmed) {
             return withContainer(container: c) { `self` in
                 return self.\(functionDecl.name)()
             }

@@ -2,7 +2,12 @@ import DIMacros
 
 @attached(
     member,
-    names: named(requirements), named(container), named(init(parent:)), named(init())
+    names:
+        named(requirements),
+    named(container),
+    named(initContainer),
+    named(init(parent:)),
+    named(init())
 )
 @attached(
     extension,
@@ -14,4 +19,4 @@ public macro Component(root: Bool? = nil) = #externalMacro(module: "DIMacros", t
     peer,
     names: arbitrary
 )
-public macro Provides<I>(_ key: Key<I>) = #externalMacro(module: "DIMacros", type: "ProvidersMacro")
+public macro Provides<I>(_ key: Key<I>) = #externalMacro(module: "DIMacros", type: "ProvidesMacro")

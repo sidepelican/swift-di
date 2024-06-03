@@ -121,7 +121,7 @@ struct AnonymousComponent {
     var container: DI.Container
 
     init(parent: some DI.Component) {
-        assert(Self.requirements.subtracting(parent.container.storage.keys).isEmpty)
+        assert(Self.requirements.subtracting(parent.container.keys).isEmpty)
         container = parent.container
         container.set(baseURLKey, provide: __provide__baseURLKey)
     }

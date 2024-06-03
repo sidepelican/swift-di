@@ -4,7 +4,7 @@ public protocol Component {
 
 extension Component {
     @inlinable
-    func get<I>(_ key: (some Key<I>).Type) -> I {
+    public func get<I>(_ key: some Key<I>) -> I {
         return container.get(key)
     }
 

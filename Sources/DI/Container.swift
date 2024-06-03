@@ -1,29 +1,35 @@
 public struct Container: Sendable {
     public typealias Provider<I> = (Container) -> I
 
-    @usableFromInline var storage: [ObjectIdentifier: any Sendable] = [:]
+    @usableFromInline var storage: [AnyKey: any Sendable]
 
     @inlinable
-    public init() {
+    public var keys: [AnyKey: any Sendable].Keys {
+        return storage.keys
     }
 
     @inlinable
-    public func get<I>(_ key: (some Key<I>).Type) -> I {
+    public init() {
+        storage = [:]
+    }
+
+    @inlinable
+    public func get<I>(_ key: some Key<I>) -> I {
         return getProvider(key)(self)
     }
 
     @inlinable
     public func getProvider<I>(
-        _ key: (some Key<I>).Type
+        _ key: some Key<I>
     ) -> Provider<I> {
-        return storage[ObjectIdentifier(key)] as! Provider<I>
+        return storage[key] as! Provider<I>
     }
 
     @inlinable
     public mutating func set<I>(
-        _ key: (some Key<I>).Type,
+        _ key: some Key<I>,
         provide: @escaping Provider<I>
     ) {
-        storage[ObjectIdentifier(key)] = provide
+        storage[key] = provide
     }
 }
