@@ -64,30 +64,31 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
                 hasInitDecl = true
             }
         }
+        requiredKeys.subtract(providingKeys)
+        let requiredKeysSorted = requiredKeys.sorted()
 
-        let missingKeys = requiredKeys.subtracting(providingKeys).sorted()
         if isRoot {
-            guard missingKeys.isEmpty else {
-                throw MessageError("root component must provide all required values. missing: \(missingKeys.joined(separator: ", "))")
+            guard requiredKeys.isEmpty else {
+                throw MessageError("root component must provide all required values. missing: \(requiredKeysSorted.joined(separator: ", "))")
             }
         }
 
         var result: [DeclSyntax] = []
-        result.append("""
+        if !requiredKeysSorted.isEmpty {
+            result.append("""
         static var requirements: Set<DI.AnyKey> {
-            [\(raw: missingKeys.joined(separator: ", "))]
+            [\(raw: requiredKeysSorted.joined(separator: ", "))]
         }
         """)
+        }
         result.append("var container = DI.Container()")
         if !hasInitDecl {
             result.append(buildInitDecl(
-                isRoot: isRoot,
-                requiredKeys: requiredKeys,
-                providingKeys: providingKeys
+                isRoot: isRoot
             ))
         }
         result.append(buildInitContainer(
-            requiredKeys: requiredKeys,
+            requiredKeys: requiredKeysSorted,
             providingKeys: providingKeys
         ))
         return result
@@ -113,9 +114,7 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
 }
 
 private func buildInitDecl(
-    isRoot: Bool,
-    requiredKeys: Set<String>,
-    providingKeys: Set<String>
+    isRoot: Bool
 ) -> DeclSyntax {
     if isRoot {
         return """
@@ -133,7 +132,7 @@ private func buildInitDecl(
 }
 
 private func buildInitContainer(
-    requiredKeys: Set<String>,
+    requiredKeys: [String],
     providingKeys: Set<String>
 ) -> DeclSyntax {
     let function = try! FunctionDeclSyntax("private mutating func initContainer(parent: some DI.Component)") {

@@ -22,10 +22,10 @@ struct RootComponent {
         APIClient()
     }
 
-    func __provide_apiClientKey(c: DI.Container) -> APIClient {
-        return withContainer(container: c) { `self` in
-            return self.apiClient()
-        }
+    func __provide_apiClientKey(container: DI.Container) -> APIClient {
+        var copy = self
+        copy.container = container
+        return copy.apiClient()
     }
 }
 """, macros: macros

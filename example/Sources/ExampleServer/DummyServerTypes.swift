@@ -18,12 +18,14 @@ struct UserManager {
 
 struct UserController {
     var user: User
-    var repository: DatabaseRepository
+    var repository: any Repository
 }
 
 struct Abort: Error {}
 
-struct DatabaseRepository {
+protocol Repository: Sendable {}
+
+struct DatabaseRepository: Repository {
     var eventLoop: any EventLoop
 }
 

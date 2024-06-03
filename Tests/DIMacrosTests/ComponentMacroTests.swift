@@ -17,10 +17,6 @@ struct EmptyComponent {
 """, expandedSource: """
 struct EmptyComponent {
 
-    static var requirements: Set<DI.AnyKey> {
-        []
-    }
-
     var container = DI.Container()
 
     init(parent: some DI.Component) {
@@ -45,10 +41,6 @@ struct RootComponent {
 }
 """, expandedSource: """
 struct RootComponent {
-
-    static var requirements: Set<DI.AnyKey> {
-        []
-    }
 
     var container = DI.Container()
 
@@ -111,10 +103,10 @@ struct AnonymousComponent {
         URL(string: "https://foo.example.com/\(get(apiVersionKey))/")!
     }
 
-    func __provide_baseURLKey(c: DI.Container) -> URL {
-        return withContainer(container: c) { `self` in
-            return self.baseURL()
-        }
+    func __provide_baseURLKey(container: DI.Container) -> URL {
+        var copy = self
+        copy.container = container
+        return copy.baseURL()
     }
 
     func myRepository() -> MyRepository {

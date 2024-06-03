@@ -1,6 +1,6 @@
 import DI
 
-let diRepository = Key<DatabaseRepository>()
+let diRepository = Key<any Repository>()
 let diEventLoop = Key<any EventLoop>()
 
 @Component(root: true)
