@@ -8,7 +8,7 @@ public struct ProvidesMacro: PeerMacro {
         providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        guard let argument = node.arguments?.as(LabeledExprListSyntax.self)?.first else {
+        guard let argument: LabeledExprSyntax = node.arguments?.as(LabeledExprListSyntax.self)?.first else {
             throw MessageError("Expected an identifier as an argument.")
         }
         let keyIdentifier = argument.expression
@@ -22,10 +22,15 @@ public struct ProvidesMacro: PeerMacro {
         }
 
         return ["""
-        func __provide_\(keyIdentifier.trimmed)(container: DI.Container) -> \(returnType.trimmed) {
+        func __provide_\(raw: funcNameSafe(keyIdentifier))(container: DI.Container) -> \(returnType.trimmed) {
             var copy = self
             copy.container = container
-            return copy.\(functionDecl.name.trimmed)()
+            let instance = copy.\(functionDecl.name.trimmed)()
+            assert({
+                let check = DI.VariantChecker(\(keyIdentifier))
+                return check(instance)
+            }())
+            return instance
         }
         """]
     }

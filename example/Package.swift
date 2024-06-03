@@ -2,6 +2,16 @@
 
 import PackageDescription
 
+func swiftSettings() -> [SwiftSetting] {
+    return [
+        .enableUpcomingFeature("ForwardTrailingClosures"),
+        .enableUpcomingFeature("ConciseMagicFile"),
+        .enableUpcomingFeature("BareSlashRegexLiterals"),
+        .enableUpcomingFeature("ExistentialAny"),
+        .enableExperimentalFeature("StrictConcurrency"),
+    ]
+}
+
 let package = Package(
     name: "example",
     platforms: [.macOS(.v13), .iOS(.v16)],
@@ -16,7 +26,8 @@ let package = Package(
             name: "ExampleServer",
             dependencies: [
                 .product(name: "DI", package: "swift-di"),
-            ]
+            ],
+            swiftSettings: swiftSettings()
         ),
     ]
 )

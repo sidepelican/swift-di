@@ -21,6 +21,10 @@ struct UserController {
     var repository: any Repository
 }
 
+struct GarbageCollectCommand {
+    var repository: any Repository
+}
+
 struct Abort: Error {}
 
 protocol Repository: Sendable {}

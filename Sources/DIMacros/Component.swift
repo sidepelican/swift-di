@@ -89,7 +89,8 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
         }
         result.append(buildInitContainer(
             requiredKeys: requiredKeysSorted,
-            providingKeys: providingKeys
+            providingKeys: providingKeys,
+            in: context
         ))
         return result
     }
@@ -133,7 +134,8 @@ private func buildInitDecl(
 
 private func buildInitContainer(
     requiredKeys: [String],
-    providingKeys: Set<String>
+    providingKeys: Set<String>,
+    in context: some MacroExpansionContext
 ) -> DeclSyntax {
     let function = try! FunctionDeclSyntax("private mutating func initContainer(parent: some DI.Component)") {
         if !requiredKeys.isEmpty {
@@ -141,7 +143,9 @@ private func buildInitContainer(
         }
         "container = parent.container"
         for key in providingKeys.sorted() {
-            "container.set(\(raw: key), provide: __provide_\(raw: key))"
+            let setterName = context.makeUniqueName("set")
+            "let \(setterName) = container.setter(for: \(raw: key))"
+            "\(setterName)(&container, __provide_\(raw: funcNameSafe(key)))"
         }
     }
 
@@ -149,20 +153,16 @@ private func buildInitContainer(
 }
 
 private func extractKey(from attribute: AttributeSyntax) -> String? {
-    guard let argument = attribute.arguments?.as(LabeledExprListSyntax.self)?.first,
-          let keyIdentifier = argument.expression.as(DeclReferenceExprSyntax.self)?.baseName.text else {
-        return nil
-    }
-    return keyIdentifier
+    return attribute.arguments?.as(LabeledExprListSyntax.self)?.first?.expression.description
 }
 
 private class GetCallVisitor: SyntaxVisitor {
-    var keys = Set<String>()
-    
+    var keys = [ExprSyntax]()
+
     override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
         if node.calledExpression.description.starts(with: "get"),
-           let firstArg = node.arguments.first?.expression.as(DeclReferenceExprSyntax.self) {
-            keys.insert(firstArg.baseName.text)
+           let firstArg = node.arguments.first?.expression {
+            keys.append(firstArg)
         }
         return .visitChildren
     }
@@ -170,5 +170,7 @@ private class GetCallVisitor: SyntaxVisitor {
 private func findKeysUsingGet(in body: some SyntaxProtocol) -> Set<String> {
     let visitor = GetCallVisitor(viewMode: .fixedUp)
     visitor.walk(body)
-    return visitor.keys
+    return Set(visitor.keys.map {
+        $0.description
+    })
 }

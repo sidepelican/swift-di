@@ -8,7 +8,7 @@ struct RequestComponent {
         initContainer(parent: parent)
     }
 
-    @Provides(diEventLoop)
+    @Provides(.eventLoop)
     func eventLoop() -> any EventLoop {
         request.eventLoop
     }

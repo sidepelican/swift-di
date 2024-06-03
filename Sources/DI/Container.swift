@@ -32,4 +32,13 @@ public struct Container: Sendable {
     ) {
         storage[key] = provide
     }
+
+    @inlinable
+    public func setter<I>(
+        for key: some Key<I>
+    ) -> (inout Self, @escaping Provider<I>) -> () {
+        return { `self`, provide in
+            self.storage[key] = provide
+        }
+    }
 }
