@@ -136,21 +136,17 @@ private func buildInitContainer(
     requiredKeys: Set<String>,
     providingKeys: Set<String>
 ) -> DeclSyntax {
-    let assertExpr = requiredKeys.isEmpty ? "" : """
-        assert(Self.requirements.subtracting(parent.container.keys).isEmpty)
-        """ as ExprSyntax
-
-    let provideSet = providingKeys
-        .sorted()
-        .map { "container.set(\(raw: $0), provide: __provide_\(raw: $0))" as CodeBlockItemSyntax }
-
-    return """
-    private mutating func initContainer(parent: some DI.Component) {
-        \(assertExpr)
-        container = parent.container
-        \(CodeBlockItemListSyntax(provideSet))
+    let function = try! FunctionDeclSyntax("private mutating func initContainer(parent: some DI.Component)") {
+        if !requiredKeys.isEmpty {
+            "assert(Self.requirements.subtracting(parent.container.keys).isEmpty)"
+        }
+        "container = parent.container"
+        for key in providingKeys.sorted() {
+            "container.set(\(raw: key), provide: __provide_\(raw: key))"
+        }
     }
-    """
+
+    return DeclSyntax(function)
 }
 
 private func extractKey(from attribute: AttributeSyntax) -> String? {

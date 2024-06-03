@@ -21,12 +21,14 @@ struct EmptyComponent {
         []
     }
 
-    var container: DI.Container
+    var container = DI.Container()
 
     init(parent: some DI.Component) {
+        initContainer(parent: parent)
+    }
 
+    private mutating func initContainer(parent: some DI.Component) {
         container = parent.container
-
     }
 }
 
@@ -44,11 +46,18 @@ struct RootComponent {
 """, expandedSource: """
 struct RootComponent {
 
-    var container: DI.Container
+    static var requirements: Set<DI.AnyKey> {
+        []
+    }
+
+    var container = DI.Container()
 
     init() {
-        container = .init()
+        initContainer(parent: self)
+    }
 
+    private mutating func initContainer(parent: some DI.Component) {
+        container = parent.container
     }
 }
 
@@ -102,7 +111,7 @@ struct AnonymousComponent {
         URL(string: "https://foo.example.com/\(get(apiVersionKey))/")!
     }
 
-    func __provide__baseURLKey(c: Container) -> URL {
+    func __provide_baseURLKey(c: DI.Container) -> URL {
         return withContainer(container: c) { `self` in
             return self.baseURL()
         }
@@ -118,12 +127,16 @@ struct AnonymousComponent {
         [apiClientKey, apiVersionKey]
     }
 
-    var container: DI.Container
+    var container = DI.Container()
 
     init(parent: some DI.Component) {
+        initContainer(parent: parent)
+    }
+
+    private mutating func initContainer(parent: some DI.Component) {
         assert(Self.requirements.subtracting(parent.container.keys).isEmpty)
         container = parent.container
-        container.set(baseURLKey, provide: __provide__baseURLKey)
+        container.set(baseURLKey, provide: __provide_baseURLKey)
     }
 }
 
