@@ -47,8 +47,7 @@ struct RootComponent {
     var container: DI.Container
 
     init() {
-
-        container = parent.container
+        container = .init()
 
     }
 }

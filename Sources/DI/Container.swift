@@ -4,6 +4,10 @@ public struct Container: Sendable {
     @usableFromInline var storage: [ObjectIdentifier: any Sendable] = [:]
 
     @inlinable
+    public init() {
+    }
+
+    @inlinable
     public func get<I>(_ key: (some Key<I>).Type) -> I {
         return getProvider(key)(self)
     }
