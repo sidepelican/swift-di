@@ -4,7 +4,7 @@ import SwiftSyntaxMacrosTestSupport
 import XCTest
 
 final class ComponentMacroTests: XCTestCase {
-    let macros: [String: Macro.Type] = [
+    let macros: [String: any Macro.Type] = [
         "Component": ComponentMacro.self,
         "Provides": ProvidesMacro.self,
     ]
@@ -64,20 +64,20 @@ extension RootComponent: DI.Component {
 @Component(root: true)
 struct RootComponent {
     var foo: Int {
-        return get(barKey) + 1
+        return get(.bar) + 1
     }
 }
 """, expandedSource: """
 struct RootComponent {
     var foo: Int {
-        return get(barKey) + 1
+        return get(.bar) + 1
     }
 }
 
 extension RootComponent: DI.Component {
 }
 """, diagnostics: [
-    .init(message: "root component must provide all required values. missing: barKey", line: 1, column: 1),
+    .init(message: "root component must provide all required values. missing: .bar", line: 1, column: 1),
 ], macros: macros
         )
     }
@@ -88,35 +88,40 @@ extension RootComponent: DI.Component {
 struct AnonymousComponent {
     @Provides(baseURLKey)
     func baseURL() -> URL {
-        URL(string: "https://foo.example.com/\(get(apiVersionKey))/")!
+        URL(string: "https://foo.example.com/\(get(.apiVersion))/")!
     }
 
     func myRepository() -> MyRepository {
         MyRepository(
-            apiClient: get(apiClientKey)
+            apiClient: get(.apiClient)
         )
     }
 }
 """#, expandedSource: #"""
 struct AnonymousComponent {
     func baseURL() -> URL {
-        URL(string: "https://foo.example.com/\(get(apiVersionKey))/")!
+        URL(string: "https://foo.example.com/\(get(.apiVersion))/")!
     }
 
-    func __provide_baseURLKey(container: DI.Container) -> URL {
+    @Sendablefunc __provide_baseURLKey(container: DI.Container) -> URL {
         var copy = self
         copy.container = container
-        return copy.baseURL()
+        let instance = copy.baseURL()
+        assert({
+            let check = DI.VariantChecker(baseURLKey)
+            return check(instance)
+        }())
+        return instance
     }
 
     func myRepository() -> MyRepository {
         MyRepository(
-            apiClient: get(apiClientKey)
+            apiClient: get(.apiClient)
         )
     }
 
     static var requirements: Set<DI.AnyKey> {
-        [apiClientKey, apiVersionKey]
+        [.apiClient, .apiVersion]
     }
 
     var container = DI.Container()
@@ -128,7 +133,8 @@ struct AnonymousComponent {
     private mutating func initContainer(parent: some DI.Component) {
         assert(Self.requirements.subtracting(parent.container.keys).isEmpty)
         container = parent.container
-        container.set(baseURLKey, provide: __provide_baseURLKey)
+        let __macro_local_3setfMu_ = container.setter(for: baseURLKey)
+        __macro_local_3setfMu_(&container, __provide_baseURLKey)
     }
 }
 

@@ -1,5 +1,5 @@
 public struct Container: Sendable {
-    public typealias Provider<I> = (Container) -> I
+    public typealias Provider<I> = @Sendable (Container) -> I
 
     @usableFromInline var storage: [AnyKey: any Sendable]
 

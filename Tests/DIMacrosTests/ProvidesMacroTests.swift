@@ -4,14 +4,14 @@ import SwiftSyntaxMacrosTestSupport
 import XCTest
 
 final class ProvidesMacroTests: XCTestCase {
-    let macros: [String: Macro.Type] = [
+    let macros: [String: any Macro.Type] = [
         "Provides": ProvidesMacro.self,
     ]
 
     func testBasic() {
         assertMacroExpansion("""
 struct RootComponent {
-    @Provides(apiClientKey)
+    @Provides(.apiClient)
     func apiClient() -> APIClient {
         APIClient()
     }
@@ -22,10 +22,15 @@ struct RootComponent {
         APIClient()
     }
 
-    func __provide_apiClientKey(container: DI.Container) -> APIClient {
+    @Sendable func __provide__apiClient(container: DI.Container) -> APIClient {
         var copy = self
         copy.container = container
-        return copy.apiClient()
+        let instance = copy.apiClient()
+        assert({
+            let check = DI.VariantChecker(.apiClient)
+            return check(instance)
+        }())
+        return instance
     }
 }
 """, macros: macros
