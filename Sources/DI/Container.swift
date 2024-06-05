@@ -15,14 +15,14 @@ public struct Container: Sendable {
 
     @inlinable
     public func get<I>(_ key: some Key<I>) -> I {
-        return getProvider(key)(self)
-    }
-
-    @inlinable
-    public func getProvider<I>(
-        _ key: some Key<I>
-    ) -> Provider<I> {
-        return storage[key] as! Provider<I>
+        guard let anyProvider = storage[key] else {
+            if storage.isEmpty {
+                fatalError("container is empty. please call initContainer(parent: parent) at the end of init.")
+            } else {
+                fatalError("\(key) is not found.")
+            }
+        }
+        return (anyProvider as! Provider<I>)(self)
     }
 
     @inlinable

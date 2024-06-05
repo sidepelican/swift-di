@@ -13,4 +13,9 @@ public class AnyKey: Hashable, @unchecked Sendable {
 }
 
 public final class Key<Instance>: AnyKey {
+    public override init() {
+    }
+    
+    public init(_ instanceType: Instance.Type) {
+    }
 }

@@ -39,8 +39,8 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
             throw MessageError("Expected a struct declaration.")
         }
 
-        var requiredKeys = Set<String>()
-        var providingKeys = Set<String>()
+        var requiredKeys = Set<ExtractedKey>()
+        var providingKeys = Set<ExtractedKey>()
         var hasInitDecl = false
 
         for member in structDecl.memberBlock.members {
@@ -69,17 +69,17 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
 
         if isRoot {
             guard requiredKeys.isEmpty else {
-                throw MessageError("root component must provide all required values. missing: \(requiredKeysSorted.joined(separator: ", "))")
+                throw MessageError("root component must provide all required values. missing: \(requiredKeysSorted.map(\.description).joined(separator: ", "))")
             }
         }
 
         var result: [DeclSyntax] = []
         if !requiredKeysSorted.isEmpty {
             result.append("""
-        static var requirements: Set<DI.AnyKey> {
-            [\(raw: requiredKeysSorted.joined(separator: ", "))]
-        }
-        """)
+            static var requirements: Set<DI.AnyKey> {
+                [\(raw: requiredKeysSorted.map(\.description).joined(separator: ", "))]
+            }
+            """)
         }
         result.append("var container = DI.Container()")
         if !hasInitDecl {
@@ -133,13 +133,13 @@ private func buildInitDecl(
 }
 
 private func buildInitContainer(
-    requiredKeys: [String],
-    providingKeys: Set<String>,
+    requiredKeys: [ExtractedKey],
+    providingKeys: Set<ExtractedKey>,
     in context: some MacroExpansionContext
 ) -> DeclSyntax {
     let function = try! FunctionDeclSyntax("private mutating func initContainer(parent: some DI.Component)") {
         if !requiredKeys.isEmpty {
-            "assert(Self.requirements.subtracting(parent.container.keys).isEmpty)"
+            "assertRequirements(Self.requirements, container: parent.container)"
         }
         "container = parent.container"
         for key in providingKeys.sorted() {
@@ -152,25 +152,70 @@ private func buildInitContainer(
     return DeclSyntax(function)
 }
 
-private func extractKey(from attribute: AttributeSyntax) -> String? {
-    return attribute.arguments?.as(LabeledExprListSyntax.self)?.first?.expression.description
+// MARK: - Extract keys
+
+// eg: AnyKey.foo => .foo
+// eg: .foo => .foo
+// eg: DI.AnyKey.foo => .foo
+// eg: MyKeys.foo => MyKeys.foo
+// eg: MyModule.MyKeys.foo => MyModule.MyKeys.foo
+private struct ExtractedKey: Hashable, Comparable, CustomStringConvertible {
+    var description: String
+
+    // TODO: needs test
+    init(_ syntax: MemberAccessExprSyntax) {
+        if let base = syntax.base {
+            if let reference = base.as(DeclReferenceExprSyntax.self) {
+                if reference.baseName.description == "AnyKey" {
+                    description = ".\(syntax.declName)"
+                    return
+                }
+            } else if let memberAccess = base.as(MemberAccessExprSyntax.self) {
+                if let base = memberAccess.base,
+                   base.description == "DI",
+                   memberAccess.declName.description == "AnyKey"
+                {
+                    description = ".\(syntax.declName)"
+                    return
+                }
+            }
+        } else {
+            description = ".\(syntax.declName)"
+            return
+        }
+        description = "\(syntax.description)"
+    }
+
+    static func < (lhs: ExtractedKey, rhs: ExtractedKey) -> Bool {
+        return lhs.description < rhs.description
+    }
+}
+
+private func extractKey(from attribute: AttributeSyntax) -> ExtractedKey? {
+    guard let syntax = attribute.arguments?.as(LabeledExprListSyntax.self)?
+        .first?.expression
+        .as(MemberAccessExprSyntax.self) else {
+        return nil
+    }
+    return ExtractedKey(syntax)
 }
 
 private class GetCallVisitor: SyntaxVisitor {
-    var keys = [ExprSyntax]()
+    var keys = [MemberAccessExprSyntax]()
 
     override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
-        if node.calledExpression.description.starts(with: "get"),
-           let firstArg = node.arguments.first?.expression {
+        if let calledExpression = node.calledExpression.as(DeclReferenceExprSyntax.self),
+           calledExpression.baseName.trimmed.description == "get",
+           let firstArg = node.arguments.first?.expression.as(MemberAccessExprSyntax.self) {
             keys.append(firstArg)
         }
         return .visitChildren
     }
 }
-private func findKeysUsingGet(in body: some SyntaxProtocol) -> Set<String> {
+private func findKeysUsingGet(in body: some SyntaxProtocol) -> Set<ExtractedKey> {
     let visitor = GetCallVisitor(viewMode: .fixedUp)
     visitor.walk(body)
     return Set(visitor.keys.map {
-        $0.description
+        ExtractedKey($0)
     })
 }
