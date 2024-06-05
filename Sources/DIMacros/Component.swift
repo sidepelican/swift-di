@@ -2,6 +2,27 @@ import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
 
+enum ComponentMacroDiagnostic: DiagnosticMessage, FixItMessage {
+    case initContainerNotCalled
+
+    var message: String {
+        switch self {
+        case .initContainerNotCalled:
+            return "To complete the setup correctly, call initContainer(parent:) at the end."
+        }
+    }
+
+    var severity: DiagnosticSeverity { .warning}
+
+    var diagnosticID: MessageID {
+        MessageID(domain: "DI", id: "Provides.\(self)")
+    }
+
+    var fixItID: MessageID {
+        diagnosticID
+    }
+}
+
 public struct ComponentMacro: MemberMacro, ExtensionMacro {
     private struct Arguments {
         var root: Bool?
@@ -66,8 +87,22 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
                     requiredKeys.formUnion(extractKeysUsedInGet(in: computedProp))
                 }
                 extractAttributes(attributes: varDecl.attributes)
-            } else if let _ = member.decl.as(InitializerDeclSyntax.self) {
+            } else if let initDecl = member.decl.as(InitializerDeclSyntax.self) {
                 hasInitDecl = true
+                let visitor = InitContainerCallVisitor(viewMode: .fixedUp)
+                visitor.walk(initDecl)
+                if !visitor.initContainerCalled {
+                    if var body = initDecl.body {
+                        let lastStmtLeadingTrivia = body.statements.last?.leadingTrivia
+                        body.statements.append("\(lastStmtLeadingTrivia ?? "\n")initContainer(parent: \(raw: isRoot ? "self" : "parent"))")
+
+                        context.diagnose(.init(
+                            node: initDecl,
+                            message: ComponentMacroDiagnostic.initContainerNotCalled,
+                            fixIt: .replace(message: ComponentMacroDiagnostic.initContainerNotCalled, oldNode: initDecl.body!, newNode: body)
+                        ))
+                    }
+                }
             }
         }
         requiredKeys.subtract(providingKeys)
@@ -156,4 +191,16 @@ private func buildInitContainer(
     }
 
     return DeclSyntax(function)
+}
+
+private class InitContainerCallVisitor: SyntaxVisitor {
+    var initContainerCalled = false
+    override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
+        if let calledExpression = node.calledExpression.as(DeclReferenceExprSyntax.self),
+           calledExpression.baseName.trimmed.description == "initContainer" {
+            initContainerCalled = true
+            return .skipChildren
+        }
+        return .visitChildren
+    }
 }
