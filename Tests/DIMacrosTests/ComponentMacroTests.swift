@@ -103,7 +103,7 @@ struct AnonymousComponent {
         URL(string: "https://foo.example.com/\(get(.apiVersion))/")!
     }
 
-    @Sendablefunc __provide_baseURLKey(container: DI.Container) -> URL {
+    @Sendable private func __provide_baseURLKey(container: DI.Container) -> URL {
         var copy = self
         copy.container = container
         let instance = copy.baseURL()

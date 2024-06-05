@@ -14,17 +14,9 @@ struct RequestComponent {
     }
 
     func userManager() -> UserManager {
-        UserManager(request: request)
-    }
-
-    func authenticatedComponent() async throws -> AuthenticatedComponent {
-        guard let user = try await userManager().authenticate() else {
-            throw Abort()
-        }
-
-        return AuthenticatedComponent(
-            parent: self,
-            user: user
+        UserManager(
+            request: request,
+            repository: get(.repository)
         )
     }
 }

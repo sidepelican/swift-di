@@ -11,8 +11,7 @@ struct AuthenticatedComponent {
 
     func userController() -> UserController {
         UserController(
-            user: user,
-            repository: get(.repository)
+            user: user
         )
     }
 }

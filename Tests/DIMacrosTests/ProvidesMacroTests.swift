@@ -22,7 +22,7 @@ struct RootComponent {
         APIClient()
     }
 
-    @Sendable func __provide__apiClient(container: DI.Container) -> APIClient {
+    @Sendable private func __provide__apiClient(container: DI.Container) -> APIClient {
         var copy = self
         copy.container = container
         let instance = copy.apiClient()

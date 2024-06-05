@@ -22,7 +22,7 @@ public struct ProvidesMacro: PeerMacro {
         }
 
         return ["""
-        @Sendable func __provide_\(raw: funcNameSafe(keyIdentifier))(container: DI.Container) -> \(returnType.trimmed) {
+        @Sendable private func __provide_\(raw: funcNameSafe(keyIdentifier))(container: DI.Container) -> \(returnType.trimmed) {
             var copy = self
             copy.container = container
             let instance = copy.\(functionDecl.name.trimmed)()
