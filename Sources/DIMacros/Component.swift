@@ -43,23 +43,29 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
         var providingKeys = Set<ExtractedKey>()
         var hasInitDecl = false
 
+        func extractAttributes(attributes: AttributeListSyntax) {
+            if let providesAttr = attributes.first(where: {
+                $0.as(AttributeSyntax.self)?.attributeName.description == "Provides"
+            }) {
+                if case .attribute(let providesAttr) = providesAttr {
+                    if let key = extractKey(from: providesAttr) {
+                        providingKeys.insert(key)
+                    }
+                }
+            }
+        }
+
         for member in structDecl.memberBlock.members {
             if let functionDecl = member.decl.as(FunctionDeclSyntax.self) {
                 if let body = functionDecl.body {
-                    requiredKeys.formUnion(findKeysUsingGet(in: body))
+                    requiredKeys.formUnion(extractKeysUsedInGet(in: body))
                 }
-
-                if let providesAttr = functionDecl.attributes.first(where: { $0.as(AttributeSyntax.self)?.attributeName.description == "Provides"
-                }) {
-                    if case .attribute(let providesAttr) = providesAttr {
-                        if let key = extractKey(from: providesAttr) {
-                            providingKeys.insert(key)
-                        }
-                    }
+                extractAttributes(attributes: functionDecl.attributes)
+            } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
+                if let computedProp = varDecl.bindings.first?.accessorBlock {
+                    requiredKeys.formUnion(extractKeysUsedInGet(in: computedProp))
                 }
-            } else if let varDecl = member.decl.as(VariableDeclSyntax.self),
-                      let computedProp = varDecl.bindings.first?.accessorBlock {
-                requiredKeys.formUnion(findKeysUsingGet(in: computedProp))
+                extractAttributes(attributes: varDecl.attributes)
             } else if let _ = member.decl.as(InitializerDeclSyntax.self) {
                 hasInitDecl = true
             }
@@ -69,7 +75,7 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
 
         if isRoot {
             guard requiredKeys.isEmpty else {
-                throw MessageError("root component must provide all required values. missing: \(requiredKeysSorted.map(\.description).joined(separator: ", "))")
+                throw MessageError("Root component must provide all required values. missing: \(requiredKeysSorted.map(\.description).joined(separator: ", "))")
             }
         }
 
@@ -150,72 +156,4 @@ private func buildInitContainer(
     }
 
     return DeclSyntax(function)
-}
-
-// MARK: - Extract keys
-
-// eg: AnyKey.foo => .foo
-// eg: .foo => .foo
-// eg: DI.AnyKey.foo => .foo
-// eg: MyKeys.foo => MyKeys.foo
-// eg: MyModule.MyKeys.foo => MyModule.MyKeys.foo
-private struct ExtractedKey: Hashable, Comparable, CustomStringConvertible {
-    var description: String
-
-    // TODO: needs test
-    init(_ syntax: MemberAccessExprSyntax) {
-        if let base = syntax.base {
-            if let reference = base.as(DeclReferenceExprSyntax.self) {
-                if reference.baseName.description == "AnyKey" {
-                    description = ".\(syntax.declName)"
-                    return
-                }
-            } else if let memberAccess = base.as(MemberAccessExprSyntax.self) {
-                if let base = memberAccess.base,
-                   base.description == "DI",
-                   memberAccess.declName.description == "AnyKey"
-                {
-                    description = ".\(syntax.declName)"
-                    return
-                }
-            }
-        } else {
-            description = ".\(syntax.declName)"
-            return
-        }
-        description = "\(syntax.description)"
-    }
-
-    static func < (lhs: ExtractedKey, rhs: ExtractedKey) -> Bool {
-        return lhs.description < rhs.description
-    }
-}
-
-private func extractKey(from attribute: AttributeSyntax) -> ExtractedKey? {
-    guard let syntax = attribute.arguments?.as(LabeledExprListSyntax.self)?
-        .first?.expression
-        .as(MemberAccessExprSyntax.self) else {
-        return nil
-    }
-    return ExtractedKey(syntax)
-}
-
-private class GetCallVisitor: SyntaxVisitor {
-    var keys = [MemberAccessExprSyntax]()
-
-    override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
-        if let calledExpression = node.calledExpression.as(DeclReferenceExprSyntax.self),
-           calledExpression.baseName.trimmed.description == "get",
-           let firstArg = node.arguments.first?.expression.as(MemberAccessExprSyntax.self) {
-            keys.append(firstArg)
-        }
-        return .visitChildren
-    }
-}
-private func findKeysUsingGet(in body: some SyntaxProtocol) -> Set<ExtractedKey> {
-    let visitor = GetCallVisitor(viewMode: .fixedUp)
-    visitor.walk(body)
-    return Set(visitor.keys.map {
-        ExtractedKey($0)
-    })
 }

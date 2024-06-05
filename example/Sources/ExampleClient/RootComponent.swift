@@ -8,17 +8,13 @@ extension AnyKey {
 
 @Component(root: true)
 struct RootComponent {
-    var session: URLSession
-
     init() {
         session = URLSession(configuration: .default)
         initContainer(parent: self)
     }
 
     @Provides(.urlSession)
-    func provideSession() -> URLSession {
-        session
-    }
+    let session: URLSession
 
     @Provides(.client)
     func apiClient() -> APIClient {
@@ -34,7 +30,7 @@ struct RootComponent {
         )
     }
 
-    @Provides(.imageRepository)
+    @Provides(DI.AnyKey.imageRepository)
     func imageRepository() -> some ImageRepository {
         NetworkImageRepository(
             urlSession: get(AnyKey.urlSession)

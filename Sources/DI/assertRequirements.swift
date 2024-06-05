@@ -14,8 +14,8 @@ func message(
     _ container: Container
 ) -> String {
     if container.keys.isEmpty {
-        return "container is empty. Please call initContainer(parent:) at the end of init in the parent container."
+        return "Container is empty. Please call initContainer(parent:) at the end of init in the parent container."
     } else {
-        return "keys not found in the container. missing: \(requirements.subtracting(container.keys))"
+        return "Keys not found in the container. missing: \(requirements.subtracting(container.keys))"
     }
 }

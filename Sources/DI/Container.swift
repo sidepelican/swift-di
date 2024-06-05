@@ -17,7 +17,7 @@ public struct Container: Sendable {
     public func get<I>(_ key: some Key<I>) -> I {
         guard let anyProvider = storage[key] else {
             if storage.isEmpty {
-                fatalError("container is empty. please call initContainer(parent: parent) at the end of init.")
+                fatalError("Container is empty. please call initContainer(parent: parent) at the end of init.")
             } else {
                 fatalError("\(key) is not found.")
             }
