@@ -1,5 +1,3 @@
-import DIMacros
-
 @attached(
     member,
     names:
