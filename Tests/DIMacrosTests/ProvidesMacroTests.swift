@@ -8,7 +8,7 @@ final class ProvidesMacroTests: XCTestCase {
         "Provides": ProvidesMacro.self,
     ]
 
-    func testBasic() {
+    func testFunc() {
         assertMacroExpansion("""
 struct RootComponent {
     @Provides(.apiClient)
@@ -28,6 +28,98 @@ struct RootComponent {
         let instance = copy.apiClient()
         assert({
             let check = DI.VariantChecker(.apiClient)
+            return check(instance)
+        }())
+        return instance
+    }
+}
+""", macros: macros
+        )
+    }
+
+    func testProperty() {
+        // stored var
+        assertMacroExpansion(
+"""
+struct RootComponent {
+    @Provides(.urlSession)
+    var urlSession: URLSession
+}
+""",
+expandedSource: """
+struct RootComponent {
+    var urlSession: URLSession
+
+    @Sendable private func __provide__urlSession(container: DI.Container) -> URLSession {
+        var copy = self
+        copy.container = container
+        let instance = copy.urlSession
+        assert({
+            let check = DI.VariantChecker(.urlSession)
+            return check(instance)
+        }())
+        return instance
+    }
+}
+""",
+diagnostics: [
+    .init(
+        message: "Attaching @Provides to a stored 'var' may cause unexpected behavior, because modifying it after the initContainer(parent:) call does not affect the container.",
+        line: 2,
+        column: 5,
+        severity: .warning,
+        fixIts: [.init(
+            message: "change 'var' to 'let'"
+        )]
+    )
+],
+macros: macros
+        )
+
+        // computed var
+        assertMacroExpansion("""
+struct RootComponent {
+    @Provides(.urlSession)
+    var urlSession: URLSession {
+        .shared
+    }
+}
+""", expandedSource: """
+struct RootComponent {
+    var urlSession: URLSession {
+        .shared
+    }
+
+    @Sendable private func __provide__urlSession(container: DI.Container) -> URLSession {
+        var copy = self
+        copy.container = container
+        let instance = copy.urlSession
+        assert({
+            let check = DI.VariantChecker(.urlSession)
+            return check(instance)
+        }())
+        return instance
+    }
+}
+""", macros: macros
+        )
+
+        // stored let
+        assertMacroExpansion("""
+struct RootComponent {
+    @Provides(.urlSession)
+    let urlSession: URLSession
+}
+""", expandedSource: """
+struct RootComponent {
+    let urlSession: URLSession
+
+    @Sendable private func __provide__urlSession(container: DI.Container) -> URLSession {
+        var copy = self
+        copy.container = container
+        let instance = copy.urlSession
+        assert({
+            let check = DI.VariantChecker(.urlSession)
             return check(instance)
         }())
         return instance

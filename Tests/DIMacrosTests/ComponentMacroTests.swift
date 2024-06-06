@@ -77,7 +77,7 @@ struct RootComponent {
 extension RootComponent: DI.Component {
 }
 """, diagnostics: [
-    .init(message: "root component must provide all required values. missing: .bar", line: 1, column: 1),
+    .init(message: "Root component must provide all required values. missing: .bar", line: 1, column: 1),
 ], macros: macros
         )
     }
@@ -131,7 +131,7 @@ struct AnonymousComponent {
     }
 
     private mutating func initContainer(parent: some DI.Component) {
-        assert(Self.requirements.subtracting(parent.container.keys).isEmpty)
+        assertRequirements(Self.requirements, container: parent.container)
         container = parent.container
         let __macro_local_3setfMu_ = container.setter(for: baseURLKey)
         __macro_local_3setfMu_(&container, __provide_baseURLKey)
@@ -144,5 +144,92 @@ extension AnonymousComponent: DI.Component {
         )
     }
 
+    func testAutoInit() {
+        // root component
+        assertMacroExpansion(#"""
+@Component(root: true)
+public struct RootComponent {
+}
+"""#, expandedSource: #"""
+public struct RootComponent {
 
+    var container = DI.Container()
+
+    public init() {
+        initContainer(parent: self)
+    }
+
+    private mutating func initContainer(parent: some DI.Component) {
+        container = parent.container
+    }
+}
+
+extension RootComponent: DI.Component {
+}
+"""#, macros: macros
+        )
+
+        // sub component
+        assertMacroExpansion(#"""
+@Component
+public struct MyComponent {
+}
+"""#, expandedSource: #"""
+public struct MyComponent {
+
+    var container = DI.Container()
+
+    public init(parent: some DI.Component) {
+        initContainer(parent: parent)
+    }
+
+    private mutating func initContainer(parent: some DI.Component) {
+        container = parent.container
+    }
+}
+
+extension MyComponent: DI.Component {
+}
+"""#, macros: macros
+        )
+    }
+
+    func testInitDiagnostic() {
+        assertMacroExpansion(
+#"""
+@Component
+struct MyComponent {
+    init(parent: some DI.Component) {
+    }
+}
+"""#,
+expandedSource: #"""
+struct MyComponent {
+    init(parent: some DI.Component) {
+    }
+
+    var container = DI.Container()
+
+    private mutating func initContainer(parent: some DI.Component) {
+        container = parent.container
+    }
+}
+
+extension MyComponent: DI.Component {
+}
+"""#,
+diagnostics: [
+    .init(
+        message: "To complete the setup correctly, call initContainer(parent:) at the end.",
+        line: 3,
+        column: 5,
+        severity: .warning,
+        fixIts: [
+            .init(message: "call initContainer(parent:)"),
+        ]
+    )
+],
+macros: macros
+        )
+    }
 }

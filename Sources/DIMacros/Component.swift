@@ -5,17 +5,26 @@ import SwiftSyntaxMacros
 enum ComponentMacroDiagnostic: DiagnosticMessage, FixItMessage {
     case initContainerNotCalled
 
-    var message: String {
+    var severity: DiagnosticSeverity { .warning }
+
+    @_implements(DiagnosticMessage, message)
+    var diagnosticMessage: String {
         switch self {
         case .initContainerNotCalled:
             return "To complete the setup correctly, call initContainer(parent:) at the end."
         }
     }
 
-    var severity: DiagnosticSeverity { .warning}
-
     var diagnosticID: MessageID {
         MessageID(domain: "DI", id: "Provides.\(self)")
+    }
+
+    @_implements(FixItMessage, message)
+    var fixItMessage: String {
+        switch self {
+        case .initContainerNotCalled:
+            return "call initContainer(parent:)"
+        }
     }
 
     var fixItID: MessageID {
@@ -114,26 +123,26 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
             }
         }
 
-        var result: [DeclSyntax] = []
+        var result: [any DeclSyntaxProtocol] = []
         if !requiredKeysSorted.isEmpty {
             result.append("""
             static var requirements: Set<DI.AnyKey> {
                 [\(raw: requiredKeysSorted.map(\.description).joined(separator: ", "))]
             }
-            """)
+            """ as DeclSyntax)
         }
-        result.append("var container = DI.Container()")
+        result.append("var container = DI.Container()" as DeclSyntax)
         if !hasInitDecl {
             result.append(buildInitDecl(
                 isRoot: isRoot
-            ))
+            ).with(\.modifiers, declaration.modifiers))
         }
         result.append(buildInitContainer(
             requiredKeys: requiredKeysSorted,
             providingKeys: providingKeys,
             in: context
         ))
-        return result
+        return result.map { DeclSyntax($0) }
     }
 
     // MARK: - ExtensionMacro
@@ -157,19 +166,15 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
 
 private func buildInitDecl(
     isRoot: Bool
-) -> DeclSyntax {
+) -> InitializerDeclSyntax {
     if isRoot {
-        return """
-        init() {
-            initContainer(parent: self)
+        return try! InitializerDeclSyntax("init()") {
+            "initContainer(parent: self)"
         }
-        """
     } else {
-        return """
-        init(parent: some DI.Component) {
-            initContainer(parent: parent)
+        return try! InitializerDeclSyntax("init(parent: some DI.Component)") {
+            "initContainer(parent: parent)"
         }
-        """
     }
 }
 
@@ -177,8 +182,8 @@ private func buildInitContainer(
     requiredKeys: [ExtractedKey],
     providingKeys: Set<ExtractedKey>,
     in context: some MacroExpansionContext
-) -> DeclSyntax {
-    let function = try! FunctionDeclSyntax("private mutating func initContainer(parent: some DI.Component)") {
+) -> FunctionDeclSyntax {
+    return try! FunctionDeclSyntax("private mutating func initContainer(parent: some DI.Component)") {
         if !requiredKeys.isEmpty {
             "assertRequirements(Self.requirements, container: parent.container)"
         }
@@ -189,8 +194,6 @@ private func buildInitContainer(
             "\(setterName)(&container, __provide_\(raw: funcNameSafe(key)))"
         }
     }
-
-    return DeclSyntax(function)
 }
 
 private class InitContainerCallVisitor: SyntaxVisitor {
