@@ -153,7 +153,7 @@ public struct RootComponent {
 """#, expandedSource: #"""
 public struct RootComponent {
 
-    var container = DI.Container()
+    public var container = DI.Container()
 
     public init() {
         initContainer(parent: self)
@@ -177,7 +177,7 @@ public struct MyComponent {
 """#, expandedSource: #"""
 public struct MyComponent {
 
-    var container = DI.Container()
+    public var container = DI.Container()
 
     public init(parent: some DI.Component) {
         initContainer(parent: parent)

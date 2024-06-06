@@ -131,7 +131,7 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
             }
             """ as DeclSyntax)
         }
-        result.append("var container = DI.Container()" as DeclSyntax)
+        result.append("\(declaration.modifiers)var container = DI.Container()" as DeclSyntax)
         if !hasInitDecl {
             result.append(buildInitDecl(
                 isRoot: isRoot
