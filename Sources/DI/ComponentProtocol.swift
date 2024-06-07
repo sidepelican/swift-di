@@ -1,4 +1,4 @@
-public protocol Component {
+public protocol Component: Sendable {
     var container: Container { get set }
 }
 
