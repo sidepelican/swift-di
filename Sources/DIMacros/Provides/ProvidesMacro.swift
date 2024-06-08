@@ -27,7 +27,7 @@ public struct ProvidesMacro: PeerMacro {
         } else if let varDecl = declaration.as(VariableDeclSyntax.self) {
             guard let binding = varDecl.bindings.first,
                   let type = binding.typeAnnotation?.type else {
-                throw MessageError("Expected a return type.")
+                throw MessageError("Expected a type annotation.")
             }
             if varDecl.bindingSpecifier.tokenKind == .keyword(.var) {
                 if binding.accessorBlock == nil {
