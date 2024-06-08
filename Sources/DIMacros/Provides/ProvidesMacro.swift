@@ -1,48 +1,9 @@
-import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
 
-enum ProvidesMacroDiagnostic: DiagnosticMessage, FixItMessage {
-    case plainVar
-
-    var severity: DiagnosticSeverity { .warning }
-
-    @_implements(DiagnosticMessage, message)
-    var diagnosticMessage: String {
-        switch self {
-        case .plainVar:
-            return "Attaching @Provides to a stored 'var' may cause unexpected behavior, because modifying it after the initContainer(parent:) call does not affect the container."
-        }
-    }
-
-    var diagnosticID: MessageID {
-        MessageID(domain: "DI", id: "Provides.\(self)")
-    }
-
-    @_implements(FixItMessage, message)
-    var fixItMessage: String {
-        switch self {
-        case .plainVar:
-            return "change 'var' to 'let'"
-        }
-    }
-
-    var fixItID: MessageID {
-        diagnosticID
-    }
-}
-
 public struct ProvidesMacro: PeerMacro {
-    private struct Arguments {
-        var key: ExtractedKey
-    }
 
-    private static func extractArguments(from attribute: AttributeSyntax) throws -> Arguments {
-        guard let key = extractKey(from: attribute) else {
-            throw MessageError("Extract argument failed.")
-        }
-        return Arguments(key: key)
-    }
+    // MARK: - PeerMacro
 
     public static func expansion(
         of node: AttributeSyntax,
@@ -64,7 +25,6 @@ public struct ProvidesMacro: PeerMacro {
             returnType = type
             callExpr = "\(functionDecl.name.trimmed)()"
         } else if let varDecl = declaration.as(VariableDeclSyntax.self) {
-            // TODO: enforce 'let' or get only 'var'.
             guard let binding = varDecl.bindings.first,
                   let type = binding.typeAnnotation?.type else {
                 throw MessageError("Expected a return type.")

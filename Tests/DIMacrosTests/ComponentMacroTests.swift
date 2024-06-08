@@ -232,4 +232,84 @@ diagnostics: [
 macros: macros
         )
     }
+
+    func testUseContainerDiagnostic() {
+        assertMacroExpansion(
+#"""
+@Component
+struct MyComponent {
+    @Provides(.foo)
+    let foo: Foo
+
+    @Provides(.bar)
+    func bar() -> Bar {
+        Bar()
+    }
+
+    var manager: any Manager {
+        AppManager(
+            foo: foo,
+            bar: bar()
+        )
+    }
+}
+"""#,
+expandedSource: #"""
+struct MyComponent {
+    @Provides(.foo)
+    let foo: Foo
+
+    @Provides(.bar)
+    func bar() -> Bar {
+        Bar()
+    }
+
+    var manager: any Manager {
+        AppManager(
+            foo: foo,
+            bar: bar()
+        )
+    }
+
+    var container = DI.Container()
+
+    init(parent: some DI.Component) {
+        initContainer(parent: parent)
+    }
+
+    private mutating func initContainer(parent: some DI.Component) {
+        container = parent.container
+        let __macro_local_3setfMu_ = container.setter(for: .bar)
+        __macro_local_3setfMu_(&container, __provide__bar)
+        let __macro_local_3setfMu0_ = container.setter(for: .foo)
+        __macro_local_3setfMu0_(&container, __provide__foo)
+    }
+}
+
+extension MyComponent: DI.Component {
+}
+"""#,
+diagnostics: [
+    .init(
+        message: "Is is preffered to retrieve the value from container. Because subcomponents may override the value.",
+        line: 13,
+        column: 18,
+        severity: .warning,
+        fixIts: [
+            .init(message: "use get(_:)"),
+        ]
+    ),
+    .init(
+        message: "Is is preffered to retrieve the value from container. Because subcomponents may override the value.",
+        line: 14,
+        column: 18,
+        severity: .warning,
+        fixIts: [
+            .init(message: "use get(_:)"),
+        ]
+    ),
+],
+macros: ["Component": ComponentMacro.self]
+        )
+    }
 }

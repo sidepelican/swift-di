@@ -153,4 +153,24 @@ struct RootComponent {
 """, macros: macros
         )
     }
+
+    func testMultipleBinding() {
+        assertMacroExpansion("""
+struct RootComponent {
+    @Provides(.foo)
+    let foo: Foo, bar: Bar
+}
+""", expandedSource: """
+struct RootComponent {
+    let foo: Foo, bar: Bar
+}
+""", diagnostics: [
+    .init(message: "peer macro can only be applied to a single variable", line: 2, column: 5),
+], macros: macros
+        )
+    }
+}
+
+struct S {
+    var foo: Int, bar: Int
 }

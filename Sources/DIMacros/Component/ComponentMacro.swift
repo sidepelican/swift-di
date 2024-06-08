@@ -2,58 +2,12 @@ import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
 
-enum ComponentMacroDiagnostic: DiagnosticMessage, FixItMessage {
-    case initContainerNotCalled
-
-    var severity: DiagnosticSeverity { .warning }
-
-    @_implements(DiagnosticMessage, message)
-    var diagnosticMessage: String {
-        switch self {
-        case .initContainerNotCalled:
-            return "To complete the setup correctly, call initContainer(parent:) at the end."
-        }
-    }
-
-    var diagnosticID: MessageID {
-        MessageID(domain: "DI", id: "Provides.\(self)")
-    }
-
-    @_implements(FixItMessage, message)
-    var fixItMessage: String {
-        switch self {
-        case .initContainerNotCalled:
-            return "call initContainer(parent:)"
-        }
-    }
-
-    var fixItID: MessageID {
-        diagnosticID
-    }
+private struct FoundProvides {
+    var key: ExtractedKey
+    var callExpression: String
 }
 
 public struct ComponentMacro: MemberMacro, ExtensionMacro {
-    private struct Arguments {
-        var root: Bool?
-    }
-
-    private static func extractArguments(from attribute: AttributeSyntax) throws -> Arguments {
-        var result = Arguments()
-        guard let arguments = attribute.arguments?.as(LabeledExprListSyntax.self) else {
-            return result
-        }
-        for argument in arguments {
-            if argument.label?.text == "root",
-               let literal = argument.expression.as(BooleanLiteralExprSyntax.self) {
-                switch literal.literal.text {
-                case "true": result.root = true
-                case "false": result.root = false
-                default: throw MessageError("Unexpected literal.")
-                }
-            }
-        }
-        return result
-    }
 
     // MARK: - MemberMacro
 
@@ -70,32 +24,25 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
         }
 
         var requiredKeys = Set<ExtractedKey>()
-        var providingKeys = Set<ExtractedKey>()
+        var providings: [FoundProvides] = []
         var hasInitDecl = false
-
-        func extractAttributes(attributes: AttributeListSyntax) {
-            if let providesAttr = attributes.first(where: {
-                $0.as(AttributeSyntax.self)?.attributeName.description == "Provides"
-            }) {
-                if case .attribute(let providesAttr) = providesAttr {
-                    if let key = extractKey(from: providesAttr) {
-                        providingKeys.insert(key)
-                    }
-                }
-            }
-        }
 
         for member in structDecl.memberBlock.members {
             if let functionDecl = member.decl.as(FunctionDeclSyntax.self) {
                 if let body = functionDecl.body {
                     requiredKeys.formUnion(extractKeysUsedInGet(in: body))
                 }
-                extractAttributes(attributes: functionDecl.attributes)
-            } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
-                if let computedProp = varDecl.bindings.first?.accessorBlock {
+                if let key = extractAttributes(attributes: functionDecl.attributes) {
+                    providings.append(.init(key: key, callExpression: "\(functionDecl.name)()"))
+                }
+            } else if let varDecl = member.decl.as(VariableDeclSyntax.self),
+                      let binding = varDecl.bindings.first {
+                if let computedProp = binding.accessorBlock {
                     requiredKeys.formUnion(extractKeysUsedInGet(in: computedProp))
                 }
-                extractAttributes(attributes: varDecl.attributes)
+                if let key = extractAttributes(attributes: varDecl.attributes) {
+                    providings.append(.init(key: key, callExpression: "\(binding.pattern)"))
+                }
             } else if let initDecl = member.decl.as(InitializerDeclSyntax.self) {
                 hasInitDecl = true
                 let visitor = InitContainerCallVisitor(viewMode: .fixedUp)
@@ -114,7 +61,14 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
                 }
             }
         }
-        requiredKeys.subtract(providingKeys)
+
+        let callArgumentsVisitor = CallArgumentsVisitor(providings: providings)
+        callArgumentsVisitor.walk(structDecl.memberBlock)
+        for d in callArgumentsVisitor.diagnostics {
+            context.diagnose(d)
+        }
+
+        requiredKeys.subtract(providings.map(\.key))
         let requiredKeysSorted = requiredKeys.sorted()
 
         if isRoot {
@@ -139,7 +93,7 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
         }
         result.append(buildInitContainer(
             requiredKeys: requiredKeysSorted,
-            providingKeys: providingKeys,
+            providingKeys: Set(providings.map(\.key)),
             in: context
         ))
         return result.map { DeclSyntax($0) }
@@ -162,6 +116,19 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
             decl.cast(ExtensionDeclSyntax.self)
         ]
     }
+}
+
+private func extractAttributes(attributes: AttributeListSyntax) -> ExtractedKey? {
+    if let providesAttr = attributes.first(where: {
+        $0.as(AttributeSyntax.self)?.attributeName.description == "Provides"
+    }) {
+        if case .attribute(let providesAttr) = providesAttr {
+            if let key = extractKey(from: providesAttr) {
+                return key
+            }
+        }
+    }
+    return nil
 }
 
 private func buildInitDecl(
@@ -202,6 +169,45 @@ private class InitContainerCallVisitor: SyntaxVisitor {
         if let calledExpression = node.calledExpression.as(DeclReferenceExprSyntax.self),
            calledExpression.baseName.trimmed.description == "initContainer" {
             initContainerCalled = true
+            return .skipChildren
+        }
+        return .visitChildren
+    }
+}
+
+private class CallArgumentsVisitor: SyntaxVisitor {
+    init(providings: [FoundProvides]) {
+        self.providings = providings
+        searchSet = Set(providings.map(\.callExpression))
+        super.init(viewMode: .fixedUp)
+    }
+
+    let providings: [FoundProvides]
+    private let searchSet: Set<String>
+    private(set) var diagnostics: [Diagnostic] = []
+
+    override func visit(_ node: LabeledExprSyntax) -> SyntaxVisitorContinueKind {
+        let exprString = node.expression.description
+        if searchSet.contains(exprString) {
+            let providing = providings.first(where: { $0.callExpression == exprString })!
+            diagnostics.append(
+                .init(
+                    node: node.expression,
+                    message: ComponentMacroDiagnostic.prefersContainer,
+                    fixIt: .replace(
+                        message: ComponentMacroDiagnostic.prefersContainer,
+                        oldNode: node.expression,
+                        newNode: FunctionCallExprSyntax(callee: DeclReferenceExprSyntax(
+                            baseName: "get"
+                        )) {
+                            LabeledExprSyntax(
+                                expression: "\(raw: providing.key.description)" as ExprSyntax
+                            )
+                        }
+                    )
+                )
+            )
+
             return .skipChildren
         }
         return .visitChildren
