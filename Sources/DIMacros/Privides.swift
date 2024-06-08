@@ -58,6 +58,9 @@ public struct ProvidesMacro: PeerMacro {
             guard let type = functionDecl.signature.returnClause?.type else {
                 throw MessageError("Expected a return type.")
             }
+            guard functionDecl.signature.parameterClause.parameters.isEmpty else {
+                throw MessageError("Provider function cannot have the arguments.")
+            }
             returnType = type
             callExpr = "\(functionDecl.name.trimmed)()"
         } else if let varDecl = declaration.as(VariableDeclSyntax.self) {

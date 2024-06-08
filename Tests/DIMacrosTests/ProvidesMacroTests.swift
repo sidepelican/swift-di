@@ -37,6 +37,31 @@ struct RootComponent {
         )
     }
 
+    func testFuncWithArgs() {
+        assertMacroExpansion("""
+struct RootComponent {
+    @Provides(.apiClient)
+    func apiClient(baseURL: URL) -> APIClient {
+        APIClient(baseURL: baseURL)
+    }
+}
+""", expandedSource: """
+struct RootComponent {
+    func apiClient(baseURL: URL) -> APIClient {
+        APIClient(baseURL: baseURL)
+    }
+}
+""", diagnostics: [
+    .init(
+        message: "Provider function cannot have the arguments.",
+        line: 2,
+        column: 5,
+        severity: .error
+    )
+], macros: macros
+        )
+    }
+
     func testProperty() {
         // stored var
         assertMacroExpansion(
