@@ -51,10 +51,10 @@ private class GetCallVisitor: SyntaxVisitor {
     var keys = [ExprSyntax]()
 
     override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
-        if let calledExpression = node.calledExpression.as(DeclReferenceExprSyntax.self),
-           calledExpression.baseName.trimmed.description == "get",
-           let firstArg = node.arguments.first?.expression {
-            keys.append(firstArg)
+        if ["get", "container.get", "self.get", "self.container.get"].contains(node.calledExpression.description) {
+            if let firstArg = node.arguments.first?.expression {
+                keys.append(firstArg)
+            }
         }
         return .visitChildren
     }

@@ -144,6 +144,54 @@ extension AnonymousComponent: DI.Component {
         )
     }
 
+    func testAllGetCallDetection() {
+        assertMacroExpansion(
+#"""
+@Component
+struct MyComponent {
+    var manager: any Manager {
+        AppManager(
+            foo: get(.foo),
+            bar: self.get(.bar),
+            baz: container.get(.baz),
+            qux: self.container.get(.qux)
+        )
+    }
+}
+"""#,
+expandedSource: #"""
+struct MyComponent {
+    var manager: any Manager {
+        AppManager(
+            foo: get(.foo),
+            bar: self.get(.bar),
+            baz: container.get(.baz),
+            qux: self.container.get(.qux)
+        )
+    }
+
+    static var requirements: Set<DI.AnyKey> {
+        [.bar, .baz, .foo, .qux]
+    }
+
+    var container = DI.Container()
+
+    init(parent: some DI.Component) {
+        initContainer(parent: parent)
+    }
+
+    private mutating func initContainer(parent: some DI.Component) {
+        assertRequirements(Self.requirements, container: parent.container)
+        container = parent.container
+    }
+}
+
+extension MyComponent: DI.Component {
+}
+"""#, macros: ["Component": ComponentMacro.self]
+        )
+    }
+
     func testAutoInit() {
         // root component
         assertMacroExpansion(#"""
