@@ -268,7 +268,7 @@ extension MyComponent: DI.Component {
 """#,
 diagnostics: [
     .init(
-        message: "To complete the setup correctly, call initContainer(parent:) at the end.",
+        message: "Call initContainer(parent:) at the end to complete the setup correctly.",
         line: 3,
         column: 5,
         severity: .warning,
@@ -297,7 +297,9 @@ struct MyComponent {
     var manager: any Manager {
         AppManager(
             foo: foo,
-            bar: bar()
+            foo2: self.foo,
+            bar: bar(),
+            bar2: self.bar()
         )
     }
 }
@@ -315,7 +317,9 @@ struct MyComponent {
     var manager: any Manager {
         AppManager(
             foo: foo,
-            bar: bar()
+            foo2: self.foo,
+            bar: bar(),
+            bar2: self.bar()
         )
     }
 
@@ -339,7 +343,7 @@ extension MyComponent: DI.Component {
 """#,
 diagnostics: [
     .init(
-        message: "Is is preffered to retrieve the value from container. Because subcomponents may override the value.",
+        message: "Prefer retrieving the value from the container, as subcomponents may override it.",
         line: 13,
         column: 18,
         severity: .warning,
@@ -348,9 +352,27 @@ diagnostics: [
         ]
     ),
     .init(
-        message: "Is is preffered to retrieve the value from container. Because subcomponents may override the value.",
+        message: "Prefer retrieving the value from the container, as subcomponents may override it.",
         line: 14,
+        column: 19,
+        severity: .warning,
+        fixIts: [
+            .init(message: "use get(_:)"),
+        ]
+    ),
+    .init(
+        message: "Prefer retrieving the value from the container, as subcomponents may override it.",
+        line: 15,
         column: 18,
+        severity: .warning,
+        fixIts: [
+            .init(message: "use get(_:)"),
+        ]
+    ),
+    .init(
+        message: "Prefer retrieving the value from the container, as subcomponents may override it.",
+        line: 16,
+        column: 19,
         severity: .warning,
         fixIts: [
             .init(message: "use get(_:)"),

@@ -187,7 +187,10 @@ private class CallArgumentsVisitor: SyntaxVisitor {
     private(set) var diagnostics: [Diagnostic] = []
 
     override func visit(_ node: LabeledExprSyntax) -> SyntaxVisitorContinueKind {
-        let exprString = node.expression.description
+        var exprString = node.expression.description
+        if exprString.hasPrefix("self.") {
+            exprString = String(exprString.dropFirst("self.".count))
+        }
         if searchSet.contains(exprString) {
             let providing = providings.first(where: { $0.callExpression == exprString })!
             diagnostics.append(

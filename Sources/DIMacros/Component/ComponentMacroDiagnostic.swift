@@ -10,9 +10,9 @@ enum ComponentMacroDiagnostic: DiagnosticMessage, FixItMessage {
     var diagnosticMessage: String {
         switch self {
         case .initContainerNotCalled:
-            return "To complete the setup correctly, call initContainer(parent:) at the end."
+            return "Call initContainer(parent:) at the end to complete the setup correctly."
         case .prefersContainer:
-            return "Is is preffered to retrieve the value from container. Because subcomponents may override the value."
+            return "Prefer retrieving the value from the container, as subcomponents may override it."
         }
     }
 
