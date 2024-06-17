@@ -185,11 +185,16 @@ private class CallArgumentsVisitor: SyntaxVisitor {
     private(set) var diagnostics: [Diagnostic] = []
 
     override func visit(_ node: LabeledExprSyntax) -> SyntaxVisitorContinueKind {
-        var exprString = node.expression.description
-        if exprString.hasPrefix("self.") {
-            exprString = String(exprString.dropFirst("self.".count))
+        let rawExprString = node.expression.description
+        let exprString = if rawExprString.hasPrefix("self.") {
+            String(rawExprString.dropFirst("self.".count))
+        } else {
+            rawExprString
         }
+
         if let providing = providings.first(where: { exprString.hasPrefix($0.callExpression) }) {
+            let newNode = rawExprString.replacingOccurrences(of: providing.callExpression, with: "get(\(providing.key))")
+            
             diagnostics.append(
                 .init(
                     node: node.expression,
@@ -197,13 +202,7 @@ private class CallArgumentsVisitor: SyntaxVisitor {
                     fixIt: .replace(
                         message: ComponentMacroDiagnostic.prefersContainer,
                         oldNode: node.expression,
-                        newNode: FunctionCallExprSyntax(callee: DeclReferenceExprSyntax(
-                            baseName: "get"
-                        )) {
-                            LabeledExprSyntax(
-                                expression: "\(raw: providing.key.description)" as ExprSyntax
-                            )
-                        }
+                        newNode: ExprSyntax(stringLiteral: newNode)
                     )
                 )
             )
