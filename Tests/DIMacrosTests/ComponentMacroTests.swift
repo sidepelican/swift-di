@@ -297,9 +297,9 @@ struct MyComponent {
     var manager: any Manager {
         AppManager(
             foo: foo,
-            foo2: self.foo,
+            foo2: self.foo.two,
             bar: bar(),
-            bar2: self.bar()
+            bar2: self.bar().two
         )
     }
 }
@@ -317,9 +317,9 @@ struct MyComponent {
     var manager: any Manager {
         AppManager(
             foo: foo,
-            foo2: self.foo,
+            foo2: self.foo.two,
             bar: bar(),
-            bar2: self.bar()
+            bar2: self.bar().two
         )
     }
 

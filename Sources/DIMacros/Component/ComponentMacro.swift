@@ -178,12 +178,10 @@ private class InitContainerCallVisitor: SyntaxVisitor {
 private class CallArgumentsVisitor: SyntaxVisitor {
     init(providings: [FoundProvides]) {
         self.providings = providings
-        searchSet = Set(providings.map(\.callExpression))
         super.init(viewMode: .fixedUp)
     }
 
     let providings: [FoundProvides]
-    private let searchSet: Set<String>
     private(set) var diagnostics: [Diagnostic] = []
 
     override func visit(_ node: LabeledExprSyntax) -> SyntaxVisitorContinueKind {
@@ -191,8 +189,7 @@ private class CallArgumentsVisitor: SyntaxVisitor {
         if exprString.hasPrefix("self.") {
             exprString = String(exprString.dropFirst("self.".count))
         }
-        if searchSet.contains(exprString) {
-            let providing = providings.first(where: { $0.callExpression == exprString })!
+        if let providing = providings.first(where: { exprString.hasPrefix($0.callExpression) }) {
             diagnostics.append(
                 .init(
                     node: node.expression,
