@@ -2,7 +2,7 @@ import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
 
-private struct FoundProvides {
+internal struct FoundProvides {
     var key: ExtractedKey
     var callExpression: String
 }
@@ -175,7 +175,7 @@ private class InitContainerCallVisitor: SyntaxVisitor {
     }
 }
 
-private class CallArgumentsVisitor: SyntaxVisitor {
+internal class CallArgumentsVisitor: SyntaxVisitor {
     init(providings: [FoundProvides]) {
         self.providings = providings
         super.init(viewMode: .fixedUp)
@@ -185,6 +185,11 @@ private class CallArgumentsVisitor: SyntaxVisitor {
     private(set) var diagnostics: [Diagnostic] = []
 
     override func visit(_ node: LabeledExprSyntax) -> SyntaxVisitorContinueKind {
+        // avoid this diagnostic by wrapping the expr with ().
+        if node.parent?.parent?.is(TupleExprSyntax.self) == true {
+            return .skipChildren
+        }
+
         let rawExprString = node.expression.description
         let exprString = if rawExprString.hasPrefix("self.") {
             String(rawExprString.dropFirst("self.".count))
@@ -192,7 +197,9 @@ private class CallArgumentsVisitor: SyntaxVisitor {
             rawExprString
         }
 
-        if let providing = providings.first(where: { exprString.hasPrefix($0.callExpression) }) {
+        if let providing = providings.first(where: {
+            exprString == $0.callExpression || exprString.hasPrefix($0.callExpression + ".")
+        }) {
             let newNode = rawExprString.replacingOccurrences(of: providing.callExpression, with: "get(\(providing.key))")
             
             diagnostics.append(
