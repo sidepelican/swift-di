@@ -7,7 +7,7 @@ extension AnyKey {
 }
 
 @Component(root: true)
-struct RootComponent {
+struct RootComponent: Sendable {
     init() {
         session = URLSession(configuration: .default)
         initContainer(parent: self)

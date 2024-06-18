@@ -6,7 +6,7 @@ extension AnyKey {
 }
 
 @Component(root: true)
-struct RootComponent {
+struct RootComponent: Sendable {
     @Provides(.eventLoop)
     func eventLoop() -> any EventLoop {
         return .singleton

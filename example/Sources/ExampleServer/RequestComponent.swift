@@ -1,7 +1,7 @@
 import DI
 
 @Component
-struct RequestComponent {
+struct RequestComponent: Sendable {
     var request: Request
     init(parent: some DI.Component, request: Request) {
         self.request = request

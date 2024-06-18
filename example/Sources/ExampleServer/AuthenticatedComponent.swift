@@ -1,7 +1,7 @@
 import DI
 
 @Component
-struct AuthenticatedComponent {
+struct AuthenticatedComponent: Sendable {
     var user: User
 
     init(parent: some DI.Component, user: User) {
