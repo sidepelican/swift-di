@@ -33,20 +33,20 @@ In Swift DI, you need to explicitly prepare a key value for each instance. We re
 import DI
 
 extension AnyKey {
-    // ①: Define DI keys.
+    // (1) Define DI keys.
     static let name = Key<String>()
     static let foo = Key<Foo>()
 }
 
 @Component(root: true)
 struct RootComponent {
-    // ②: Define value for the key.
+    // (2) Define value for the key.
     @Provides(.name)
     var name: String { "RootComponent" }
 
     @Provides(.foo)
     var foo: Foo {
-        // ③: Get value using `get`.
+        // (3) Get value using `get`.
         Foo(name: get(.name))
     }
 
@@ -57,7 +57,7 @@ struct RootComponent {
 
 @Component
 struct ChildComponent {
-    // ④: Child component can override parent component's key.
+    // (4) Child component can override parent component's key.
     @Provides(.name)
     var name: String { "ChildComponent" }
 
