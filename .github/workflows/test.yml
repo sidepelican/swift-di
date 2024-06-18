@@ -11,6 +11,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - run: sudo xcode-select -s /Applications/Xcode_15.4.app
       - run: swift test
       - name: Build example
         run: swift build
