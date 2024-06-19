@@ -16,7 +16,7 @@ Multi-module compliance, Sendable conforming, and instance overwriting by lower 
 To add a dependency on the package, declare it in your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/sidepelican/D1Kit.git", from: "1.0.0"),
+.package(url: "https://github.com/sidepelican/swift-di.git", from: "1.0.0"),
 ```
 
 and to your application target, add `DI` to your dependencies:
