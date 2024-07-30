@@ -71,10 +71,11 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
         requiredKeys.subtract(providings.map(\.key))
         let requiredKeysSorted = requiredKeys.sorted()
 
-        if isRoot {
-            guard requiredKeys.isEmpty else {
-                throw MessageError("Root component must provide all required values. missing: \(requiredKeysSorted.map(\.description).joined(separator: ", "))")
-            }
+        if isRoot && !requiredKeys.isEmpty {
+            context.diagnose(.init(
+                node: declaration,
+                message: ComponentMacroDiagnostic.missingRequiredValues(keys: requiredKeysSorted.map(\.description))
+            ))
         }
 
         var result: [any DeclSyntaxProtocol] = []
