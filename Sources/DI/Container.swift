@@ -14,7 +14,7 @@ public struct Container: Sendable {
     }
 
     @inlinable
-    public func get<I>(_ key: some Key<I>) -> I {
+    public func get<I>(_ key: Key<I>) -> I {
         guard let anyProvider = storage[key] else {
             if storage.isEmpty {
                 fatalError("Container is empty. please call initContainer(parent: parent) at the end of init.")
@@ -27,7 +27,7 @@ public struct Container: Sendable {
 
     @inlinable
     public mutating func set<I>(
-        _ key: some Key<I>,
+        _ key: Key<I>,
         provide: @escaping Provider<I>
     ) {
         storage[key] = provide
@@ -35,7 +35,7 @@ public struct Container: Sendable {
 
     @inlinable
     public func setter<I>(
-        for key: some Key<I>
+        for key: Key<I>
     ) -> (inout Self, @escaping Provider<I>) -> () {
         return { `self`, provide in
             self.storage[key] = provide
