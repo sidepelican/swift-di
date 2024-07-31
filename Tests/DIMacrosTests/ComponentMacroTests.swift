@@ -72,6 +72,21 @@ struct RootComponent {
     var foo: Int {
         return get(.bar) + 1
     }
+
+    static var requirements: Set<DI.AnyKey> {
+        [.bar]
+    }
+
+    var container = DI.Container()
+
+    init() {
+        initContainer(parent: self)
+    }
+
+    private mutating func initContainer(parent: some DI.Component) {
+        assertRequirements(Self.requirements, container: parent.container)
+        container = parent.container
+    }
 }
 
 extension RootComponent: DI.Component {
