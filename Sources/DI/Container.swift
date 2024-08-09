@@ -46,6 +46,7 @@ public struct Container: Sendable {
         return combinedMetadata.keys
     }
 
+    @inlinable
     public mutating func combine(metadata: ComponentProvidingMetadata<some Component>) {
         for (key, function) in metadata.table {
             combinedMetadata[key] = function
@@ -53,7 +54,7 @@ public struct Container: Sendable {
     }
 
     @inlinable
-    internal func get<Instance>(
+    public func get<Instance>(
         _ key: Key<Instance>,
         with components: [any Component]
     ) -> Instance {
