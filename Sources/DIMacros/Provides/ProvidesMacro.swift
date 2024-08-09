@@ -29,19 +29,6 @@ public struct ProvidesMacro: PeerMacro {
                   let type = binding.typeAnnotation?.type else {
                 throw MessageError("Expected a type annotation.")
             }
-//            if varDecl.bindingSpecifier.tokenKind == .keyword(.var) {
-//                if binding.accessorBlock == nil {
-//                    context.diagnose(.init(
-//                        node: declaration,
-//                        message: ProvidesMacroDiagnostic.plainVar,
-//                        fixIt: .replace(
-//                            message: ProvidesMacroDiagnostic.plainVar,
-//                            oldNode: varDecl.bindingSpecifier,
-//                            newNode: TokenSyntax(.keyword(.let), presence: .present)
-//                        )
-//                    ))
-//                }
-//            }
             returnType = type
             callExpr = "\(binding.pattern)"
         } else {

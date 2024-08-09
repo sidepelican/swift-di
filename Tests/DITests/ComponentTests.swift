@@ -2,13 +2,13 @@ import DI
 import XCTest
 
 extension AnyKey {
-    static let name = Key<String>()
-    static let age = Key<Int>()
-    static let message = Key<String>()
+    fileprivate static let name = Key<String>()
+    fileprivate static let age = Key<Int>()
+    fileprivate static let message = Key<String>()
 }
 
 @Component(root: true)
-struct RootComponent: Sendable {
+fileprivate struct RootComponent: Sendable {
     @Provides(.name)
     var name: String {
         "RootComponent"
@@ -25,7 +25,7 @@ struct RootComponent: Sendable {
 }
 
 @Component
-struct ParentComponent: Sendable {
+fileprivate struct ParentComponent: Sendable {
     @Provides(.name)
     var name: String {
         "ParentComponent"
@@ -42,7 +42,7 @@ struct ParentComponent: Sendable {
 }
 
 @Component
-struct ChildComponent: Sendable {
+fileprivate struct ChildComponent: Sendable {
     @Provides(.name)
     var name: String = "ChildComponent"
 
@@ -52,7 +52,7 @@ struct ChildComponent: Sendable {
 }
 
 final class ComponentTests: XCTestCase {
-    func testInheritance() {
+    func testInheritanceAndOverrride() {
         let root = RootComponent()
         let parent = root.parentComponent
         XCTAssertEqual(parent.message, "I'm ParentComponent, age=42")
