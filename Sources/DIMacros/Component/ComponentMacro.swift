@@ -50,7 +50,7 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
                 if !visitor.initContainerCalled {
                     if var body = initDecl.body {
                         let lastStmtLeadingTrivia = body.statements.last?.leadingTrivia
-                        body.statements.append("\(lastStmtLeadingTrivia ?? "\n")initContainer(parent: \(raw: isRoot ? "self" : "parent"))")
+                        body.statements.append("\(lastStmtLeadingTrivia ?? "\n")initContainer(parent: \(raw: isRoot ? "nil" : "parent"))")
 
                         context.diagnose(.init(
                             node: initDecl,
@@ -79,24 +79,29 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
         }
 
         var result: [any DeclSyntaxProtocol] = []
-        if !requiredKeysSorted.isEmpty {
-            result.append("""
-            static var requirements: Set<DI.AnyKey> {
-                [\(raw: requiredKeysSorted.map(\.description).joined(separator: ", "))]
-            }
-            """ as DeclSyntax)
+        result.append("""
+        static var requirements: Set<DI.AnyKey> {
+            [\(raw: requiredKeysSorted.map(\.description).joined(separator: ", "))]
         }
+        """ as DeclSyntax)
         result.append("\(declaration.modifiers)var container = DI.Container()" as DeclSyntax)
+        result.append("\(declaration.modifiers)var parents = [any DI.Component]()" as DeclSyntax)
         if !hasInitDecl {
             result.append(buildInitDecl(
                 isRoot: isRoot
             ).with(\.modifiers, declaration.modifiers))
         }
-        result.append(buildInitContainer(
+        result.append(buildBuildMetadata(
+            modifiers: declaration.modifiers,
             requiredKeys: requiredKeysSorted,
             providingKeys: Set(providings.map(\.key)),
             in: context
         ))
+//        result.append(buildInitContainer(
+//            requiredKeys: requiredKeysSorted,
+//            providingKeys: Set(providings.map(\.key)),
+//            in: context
+//        ))
         return result.map { DeclSyntax($0) }
     }
 
@@ -137,12 +142,30 @@ private func buildInitDecl(
 ) -> InitializerDeclSyntax {
     if isRoot {
         return try! InitializerDeclSyntax("init()") {
-            "initContainer(parent: self)"
+            "initContainer(parent: nil)"
         }
     } else {
         return try! InitializerDeclSyntax("init(parent: some DI.Component)") {
             "initContainer(parent: parent)"
         }
+    }
+}
+
+private func buildBuildMetadata(
+    modifiers: DeclModifierListSyntax,
+    requiredKeys: [ExtractedKey],
+    providingKeys: Set<ExtractedKey>,
+    in context: some MacroExpansionContext
+) -> FunctionDeclSyntax {
+    return try! FunctionDeclSyntax("\(modifiers)static func buildMetadata() -> ComponentProvidingMetadata<Self>") {
+        "var metadata = ComponentProvidingMetadata<Self>()"
+        for key in providingKeys.sorted() {
+//            "metadata.table[\(raw: key)] = FunctionDescriptor { (c: Self) in c.__provide_\(raw: funcNameSafe(key))() }"
+            let setterName = context.makeUniqueName("set")
+            "let \(setterName) = metadata.setter(for: \(raw: key))"
+            "\(setterName)(&metadata, __provide_\(raw: funcNameSafe(key)))"
+        }
+        "return metadata"
     }
 }
 

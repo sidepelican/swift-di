@@ -40,6 +40,13 @@ let package = Package(
             swiftSettings: swiftSettings()
         ),
         .testTarget(
+            name: "DITests",
+            dependencies: [
+                "DI",
+            ],
+            swiftSettings: swiftSettings()
+        ),
+        .testTarget(
             name: "DIMacrosTests",
             dependencies: [
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),

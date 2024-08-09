@@ -1,44 +1,84 @@
-public struct Container: Sendable {
-    public typealias Provider<I> = @Sendable (Container) -> I
-
-    @usableFromInline var storage: [AnyKey: any Sendable]
-
-    @inlinable
-    public var keys: [AnyKey: any Sendable].Keys {
-        return storage.keys
-    }
-
-    @inlinable
+public struct ComponentProvidingMetadata<C>: Sendable {
     public init() {
-        storage = [:]
     }
+    
+    public var table: [AnyKey: any WitnessTableElement] = [:]
 
-    @inlinable
-    public func get<I>(_ key: Key<I>) -> I {
-        guard let anyProvider = storage[key] else {
-            if storage.isEmpty {
-                fatalError("Container is empty. please call initContainer(parent: parent) at the end of init.")
-            } else {
-                fatalError("\(key) is not found.")
-            }
-        }
-        return (anyProvider as! Provider<I>)(self)
-    }
-
-    @inlinable
-    public mutating func set<I>(
-        _ key: Key<I>,
-        provide: @escaping Provider<I>
-    ) {
-        storage[key] = provide
-    }
+//    @inlinable
+//    public mutating func set<I>(
+//        for key: Key<I>,
+//        _ provide: @escaping @Sendable (C) -> I
+//    ) {
+//        self.table[key] = FunctionDescriptor(ref: provide)
+//    }
 
     @inlinable
     public func setter<I>(
         for key: Key<I>
-    ) -> (inout Self, @escaping Provider<I>) -> () {
+    ) -> (inout Self, @escaping @Sendable (C) -> I) -> () {
         return { `self`, provide in
-            self.storage[key] = provide
+            self.table[key] = FunctionDescriptor(ref: provide)
+        }
+    }
+}
+
+public protocol WitnessTableElement: Sendable {
+    associatedtype ValueType
+}
+
+@usableFromInline struct FunctionDescriptor<C, I>: WitnessTableElement {
+    @usableFromInline init(ref: @escaping @Sendable (C) -> I) {
+        self.ref = ref
+    }
+    @usableFromInline typealias ValueType = C
+    @usableFromInline var ref: @Sendable (C) -> I
+}
+
+public struct Container: Sendable {
+    @inlinable
+    public init() {
+    }
+    
+    @usableFromInline var combinedMetadata: [AnyKey: any WitnessTableElement] = [:]
+    
+    @inlinable
+    public var keys: some (Collection<AnyKey> & Sequence<AnyKey>) {
+        return combinedMetadata.keys
+    }
+
+    public mutating func combine(metadata: ComponentProvidingMetadata<some Component>) {
+        for (key, function) in metadata.table {
+            combinedMetadata[key] = function
+        }
+    }
+
+    @inlinable
+    internal func get<Instance>(
+        _ key: Key<Instance>,
+        with components: [any Component]
+    ) -> Instance {
+        guard let element = combinedMetadata[key] else {
+            if combinedMetadata.isEmpty {
+                preconditionFailure("Container is empty. please call initContainer(parent: parent) at the end of init.")
+            } else {
+                preconditionFailure("\(key) is not found.")
+            }
+        }
+        return openAndRun(element)
+
+        func openAndRun<E: WitnessTableElement>(_ element: E) -> Instance {
+            func applyIfMatched<C: Component>(_ component: C, element: E) -> Instance? {
+                if C.self == E.ValueType.self {
+                    return (element as! FunctionDescriptor<C, Instance>).ref(component)
+                }
+                return nil
+            }
+            for parent in components.reversed() {
+                if let found = applyIfMatched(parent, element: element) {
+                    return found
+                }
+            }
+            preconditionFailure("Matched component not found. expected=\(E.ValueType.self), components=\(components.map({ type(of: $0) }))")
         }
     }
 }
