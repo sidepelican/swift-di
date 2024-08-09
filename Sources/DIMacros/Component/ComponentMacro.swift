@@ -97,11 +97,6 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
             providingKeys: Set(providings.map(\.key)),
             in: context
         ))
-//        result.append(buildInitContainer(
-//            requiredKeys: requiredKeysSorted,
-//            providingKeys: Set(providings.map(\.key)),
-//            in: context
-//        ))
         return result.map { DeclSyntax($0) }
     }
 
@@ -160,30 +155,11 @@ private func buildBuildMetadata(
     return try! FunctionDeclSyntax("\(modifiers)static func buildMetadata() -> ComponentProvidingMetadata<Self>") {
         "var metadata = ComponentProvidingMetadata<Self>()"
         for key in providingKeys.sorted() {
-//            "metadata.table[\(raw: key)] = FunctionDescriptor { (c: Self) in c.__provide_\(raw: funcNameSafe(key))() }"
             let setterName = context.makeUniqueName("set")
             "let \(setterName) = metadata.setter(for: \(raw: key))"
             "\(setterName)(&metadata, __provide_\(raw: funcNameSafe(key)))"
         }
         "return metadata"
-    }
-}
-
-private func buildInitContainer(
-    requiredKeys: [ExtractedKey],
-    providingKeys: Set<ExtractedKey>,
-    in context: some MacroExpansionContext
-) -> FunctionDeclSyntax {
-    return try! FunctionDeclSyntax("private mutating func initContainer(parent: some DI.Component)") {
-        if !requiredKeys.isEmpty {
-            "assertRequirements(Self.requirements, container: parent.container)"
-        }
-        "container = parent.container"
-        for key in providingKeys.sorted() {
-            let setterName = context.makeUniqueName("set")
-            "let \(setterName) = container.setter(for: \(raw: key))"
-            "\(setterName)(&container, __provide_\(raw: funcNameSafe(key)))"
-        }
     }
 }
 
