@@ -6,11 +6,6 @@ extension AnyKey {
     static let client = Key<APIClient>()
 }
 
-struct DIRegistration<Component, T> {
-    var key: Key<T>
-    var provider: (Component, Container) -> T
-}
-
 @Component(root: true)
 struct RootComponent: Sendable {
     init() {
