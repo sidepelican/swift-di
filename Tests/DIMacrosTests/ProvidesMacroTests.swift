@@ -123,6 +123,48 @@ struct RootComponent {
         )
     }
 
+    func testComputedVarAccessors() {
+        assertMacroExpansion("""
+struct RootComponent {
+    @Provides(.urlSession)
+    var urlSession: URLSession {
+        set {
+            fatalError()
+        }
+        get {
+            .shared
+        }
+    }
+}
+""", expandedSource: """
+struct RootComponent {
+    var urlSession: URLSession {
+        set {
+            fatalError()
+        }
+        get {
+            .shared
+        }
+    }
+
+    @Sendable private static func __provide__urlSession(`self`: Self, components: [any Component]) -> URLSession {
+        func `get`<I>(_ key: Key<I>) -> I {
+            self.container.get(key, with: components)
+        }
+        let instance = { () -> URLSession in
+            .shared
+        }()
+        assert({
+            let check = DI.VariantChecker(.urlSession)
+            return check(instance)
+            }())
+        return instance
+    }
+}
+""", macros: macros
+        )
+    }
+
     func testStoredLet() {
         // stored let
         assertMacroExpansion("""
