@@ -15,7 +15,7 @@ public struct ComponentProvidingMetadata<C>: Sendable {
     @inlinable
     public func setter<I>(
         for key: Key<I>
-    ) -> (inout Self, @escaping @Sendable (C) -> I) -> () {
+    ) -> (inout Self, @escaping @Sendable (C, [any Component]) -> I) -> () {
         return { `self`, provide in
             self.table[key] = FunctionDescriptor(ref: provide)
         }
@@ -27,11 +27,11 @@ public protocol WitnessTableElement: Sendable {
 }
 
 @usableFromInline struct FunctionDescriptor<C, I>: WitnessTableElement {
-    @usableFromInline init(ref: @escaping @Sendable (C) -> I) {
+    @usableFromInline init(ref: @escaping @Sendable (C, [any Component]) -> I) {
         self.ref = ref
     }
     @usableFromInline typealias ValueType = C
-    @usableFromInline var ref: @Sendable (C) -> I
+    @usableFromInline var ref: @Sendable (C, [any Component]) -> I
 }
 
 public struct Container: Sendable {
@@ -46,6 +46,7 @@ public struct Container: Sendable {
         return combinedMetadata.keys
     }
 
+    @inlinable
     public mutating func combine(metadata: ComponentProvidingMetadata<some Component>) {
         for (key, function) in metadata.table {
             combinedMetadata[key] = function
@@ -53,7 +54,7 @@ public struct Container: Sendable {
     }
 
     @inlinable
-    internal func get<Instance>(
+    public func get<Instance>(
         _ key: Key<Instance>,
         with components: [any Component]
     ) -> Instance {
@@ -69,7 +70,7 @@ public struct Container: Sendable {
         func openAndRun<E: WitnessTableElement>(_ element: E) -> Instance {
             func applyIfMatched<C: Component>(_ component: C, element: E) -> Instance? {
                 if C.self == E.ValueType.self {
-                    return (element as! FunctionDescriptor<C, Instance>).ref(component)
+                    return (element as! FunctionDescriptor<C, Instance>).ref(component, components)
                 }
                 return nil
             }

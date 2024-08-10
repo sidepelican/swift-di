@@ -131,12 +131,17 @@ struct AnonymousComponent {
         URL(string: "https://foo.example.com/\(get(.apiVersion))/")!
     }
 
-    @Sendable private static func __provide_baseURLKey(`self`: Self) -> URL {
-        let instance = self.baseURL()
+    @Sendable private static func __provide_baseURLKey(`self`: Self, components: [any Component]) -> URL {
+        func `get`<I>(_ key: Key<I>) -> I {
+            self.container.get(key, with: components)
+        }
+        let instance = { () -> URL in
+            URL(string: "https://foo.example.com/\(get(.apiVersion))/")!
+        }()
         assert({
             let check = DI.VariantChecker(baseURLKey)
             return check(instance)
-        }())
+            }())
         return instance
     }
 

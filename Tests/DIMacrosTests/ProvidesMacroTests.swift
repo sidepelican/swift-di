@@ -22,12 +22,17 @@ struct RootComponent {
         APIClient()
     }
 
-    @Sendable private static func __provide__apiClient(`self`: Self) -> APIClient {
-        let instance = self.apiClient()
+    @Sendable private static func __provide__apiClient(`self`: Self, components: [any Component]) -> APIClient {
+        func `get`<I>(_ key: Key<I>) -> I {
+            self.container.get(key, with: components)
+        }
+        let instance = { () -> APIClient in
+            APIClient()
+        }()
         assert({
             let check = DI.VariantChecker(.apiClient)
             return check(instance)
-        }())
+            }())
         return instance
     }
 }
@@ -60,6 +65,29 @@ struct RootComponent {
         )
     }
 
+    func testStoredLet() {
+        assertMacroExpansion("""
+struct RootComponent {
+    @Provides(.urlSession)
+    let urlSession: URLSession
+}
+""", expandedSource: """
+struct RootComponent {
+    let urlSession: URLSession
+
+    @Sendable private static func __provide__urlSession(`self`: Self, components: [any Component]) -> URLSession {
+        let instance = self.urlSession
+        assert({
+            let check = DI.VariantChecker(.urlSession)
+            return check(instance)
+            }())
+        return instance
+    }
+}
+""", macros: macros
+        )
+    }
+
     func testStoredVar() {
         assertMacroExpansion(
 """
@@ -72,12 +100,12 @@ expandedSource: """
 struct RootComponent {
     var urlSession: URLSession
 
-    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
+    @Sendable private static func __provide__urlSession(`self`: Self, components: [any Component]) -> URLSession {
         let instance = self.urlSession
         assert({
             let check = DI.VariantChecker(.urlSession)
             return check(instance)
-        }())
+            }())
         return instance
     }
 }
@@ -100,12 +128,17 @@ struct RootComponent {
         .shared
     }
 
-    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
-        let instance = self.urlSession
+    @Sendable private static func __provide__urlSession(`self`: Self, components: [any Component]) -> URLSession {
+        func `get`<I>(_ key: Key<I>) -> I {
+            self.container.get(key, with: components)
+        }
+        let instance = { () -> URLSession in
+            .shared
+        }()
         assert({
             let check = DI.VariantChecker(.urlSession)
             return check(instance)
-        }())
+            }())
         return instance
     }
 }
@@ -136,29 +169,6 @@ struct RootComponent {
             .shared
         }
     }
-
-    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
-        let instance = self.urlSession
-        assert({
-            let check = DI.VariantChecker(.urlSession)
-            return check(instance)
-        }())
-        return instance
-    }
-}
-""", macros: macros
-        )
-    }
-
-    func testStoredLet() {
-        assertMacroExpansion("""
-struct RootComponent {
-    @Provides(.urlSession)
-    let urlSession: URLSession
-}
-""", expandedSource: """
-struct RootComponent {
-    let urlSession: URLSession
 
     @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
         let instance = self.urlSession
