@@ -30,7 +30,7 @@ struct RootComponent: Sendable {
         )
     }
 
-    
+    @Provides(DI.AnyKey.imageRepository)
     func imageRepository() -> any ImageRepository {
         NetworkImageRepository(
             urlSession: get(AnyKey.urlSession)
