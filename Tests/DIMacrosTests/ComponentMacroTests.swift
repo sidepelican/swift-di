@@ -30,8 +30,7 @@ struct EmptyComponent {
     }
 
     static func buildMetadata() -> ComponentProvidingMetadata<Self> {
-        var metadata = ComponentProvidingMetadata<Self>()
-        return metadata
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -62,8 +61,7 @@ struct RootComponent {
     }
 
     static func buildMetadata() -> ComponentProvidingMetadata<Self> {
-        var metadata = ComponentProvidingMetadata<Self>()
-        return metadata
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -100,8 +98,7 @@ struct RootComponent {
     }
 
     static func buildMetadata() -> ComponentProvidingMetadata<Self> {
-        var metadata = ComponentProvidingMetadata<Self>()
-        return metadata
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -210,8 +207,7 @@ struct MyComponent {
     }
 
     static func buildMetadata() -> ComponentProvidingMetadata<Self> {
-        var metadata = ComponentProvidingMetadata<Self>()
-        return metadata
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -243,8 +239,7 @@ public struct RootComponent {
     }
 
     public static func buildMetadata() -> ComponentProvidingMetadata<Self> {
-        var metadata = ComponentProvidingMetadata<Self>()
-        return metadata
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -274,8 +269,7 @@ public struct MyComponent {
     }
 
     public static func buildMetadata() -> ComponentProvidingMetadata<Self> {
-        var metadata = ComponentProvidingMetadata<Self>()
-        return metadata
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -308,8 +302,7 @@ struct MyComponent {
     var parents = [any DI.Component] ()
 
     static func buildMetadata() -> ComponentProvidingMetadata<Self> {
-        var metadata = ComponentProvidingMetadata<Self>()
-        return metadata
+        return ComponentProvidingMetadata<Self>()
     }
 }
 

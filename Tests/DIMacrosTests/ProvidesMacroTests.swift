@@ -60,8 +60,7 @@ struct RootComponent {
         )
     }
 
-    func testProperty() {
-        // stored var
+    func testStoredVar() {
         assertMacroExpansion(
 """
 struct RootComponent {
@@ -85,8 +84,9 @@ struct RootComponent {
 """,
 macros: macros
         )
+    }
 
-        // computed var
+    func testComputedVar() {
         assertMacroExpansion("""
 struct RootComponent {
     @Provides(.urlSession)
@@ -111,6 +111,7 @@ struct RootComponent {
 }
 """, macros: macros
         )
+    }
 
     func testComputedVarAccessors() {
         assertMacroExpansion("""
@@ -136,17 +137,12 @@ struct RootComponent {
         }
     }
 
-    @Sendable private static func __provide__urlSession(`self`: Self, components: [any Component]) -> URLSession {
-        func `get`<I>(_ key: Key<I>) -> I {
-            self.container.get(key, with: components)
-        }
-        let instance = { () -> URLSession in
-            .shared
-        }()
+    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
+        let instance = self.urlSession
         assert({
             let check = DI.VariantChecker(.urlSession)
             return check(instance)
-            }())
+        }())
         return instance
     }
 }
@@ -192,8 +188,4 @@ struct RootComponent {
 ], macros: macros
         )
     }
-}
-
-struct S {
-    var foo: Int, bar: Int
 }
