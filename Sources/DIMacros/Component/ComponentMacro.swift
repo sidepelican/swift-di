@@ -153,13 +153,17 @@ private func buildBuildMetadata(
     in context: some MacroExpansionContext
 ) -> FunctionDeclSyntax {
     return try! FunctionDeclSyntax("\(modifiers)static func buildMetadata() -> ComponentProvidingMetadata<Self>") {
-        "var metadata = ComponentProvidingMetadata<Self>()"
-        for key in providingKeys.sorted() {
-            let setterName = context.makeUniqueName("set")
-            "let \(setterName) = metadata.setter(for: \(raw: key))"
-            "\(setterName)(&metadata, __provide_\(raw: funcNameSafe(key)))"
+        if providingKeys.isEmpty {
+            "return ComponentProvidingMetadata<Self>()"
+        } else {
+            "var metadata = ComponentProvidingMetadata<Self>()"
+            for key in providingKeys.sorted() {
+                let setterName = context.makeUniqueName("set")
+                "let \(setterName) = metadata.setter(for: \(raw: key))"
+                "\(setterName)(&metadata, __provide_\(raw: funcNameSafe(key)))"
+            }
+            "return metadata"
         }
-        "return metadata"
     }
 }
 
