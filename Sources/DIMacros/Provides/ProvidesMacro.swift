@@ -14,7 +14,7 @@ public struct ProvidesMacro: PeerMacro {
         let keyIdentifier = argument.key.description
 
         let returnType: TypeSyntax
-        let callExpr: TokenSyntax
+        var callExpr: TokenSyntax
         let getterBlock: CodeBlockItemListSyntax?
         if let functionDecl = declaration.as(FunctionDeclSyntax.self) {
             guard let type = functionDecl.signature.returnClause?.type else {
@@ -38,21 +38,27 @@ public struct ProvidesMacro: PeerMacro {
             throw MessageError("@Provides should be added to the 'func' or 'var' or 'let'.")
         }
 
-        let f = try FunctionDeclSyntax("@Sendable private static func __provide_\(raw: funcNameSafe(keyIdentifier))(`self`: Self, components: [any Component]) -> \(returnType.trimmed)") {
-            if let getterBlock {
+        let keyFuncName = funcNameSafe(keyIdentifier)
+        var result: [any DeclSyntaxProtocol] = []
+
+        if let getterBlock {
+            let getterFuncName = context.makeUniqueName(keyFuncName)
+            callExpr = "\(getterFuncName)(with: components)"
+            result.append(try FunctionDeclSyntax("private func \(getterFuncName)(with components: [any DI.Component]) -> \(returnType.trimmed)") {
                 """
                 func `get`<I>(_ key: Key<I>) -> I {
                     self.container.get(key, with: components)
                 }
                 """
                 """
-                let instance = { () -> \(returnType.trimmed) in
+                return {
                     \(SelfGetRewriter().visit(getterBlock).trimmed)
                 }()
                 """
-            } else {
-                "let instance = self.\(callExpr)"
-            }
+            })
+        }
+        result.append(try FunctionDeclSyntax("@Sendable private static func __provide_\(raw: keyFuncName)(`self`: Self, components: [any DI.Component]) -> \(returnType.trimmed)") {
+            "let instance = self.\(callExpr)"
             """
             assert({
                 let check = DI.VariantChecker(\(raw: keyIdentifier))
@@ -60,8 +66,8 @@ public struct ProvidesMacro: PeerMacro {
             }())
             """
             "return instance"
-        }
-        return [DeclSyntax(f)]
+        })
+        return result.map { DeclSyntax($0) }
     }
 }
 

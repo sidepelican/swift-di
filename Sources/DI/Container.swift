@@ -7,7 +7,7 @@ public struct ComponentProvidingMetadata<C>: Sendable {
 //    @inlinable
 //    public mutating func set<I>(
 //        for key: Key<I>,
-//        _ provide: @escaping @Sendable (C) -> I
+//        _ provide: @escaping @Sendable (C, [any Component]) -> I
 //    ) {
 //        self.table[key] = FunctionDescriptor(ref: provide)
 //    }
