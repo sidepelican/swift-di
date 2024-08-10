@@ -24,14 +24,14 @@ struct RootComponent: Sendable {
     }
 
     @Provides(.userRepository)
-    func userRepository() -> some UserRepository {
+    func userRepository() -> any UserRepository {
         APIUserRepository(
             apiClient: get(.client)
         )
     }
 
-    @Provides(DI.AnyKey.imageRepository)
-    func imageRepository() -> some ImageRepository {
+    
+    func imageRepository() -> any ImageRepository {
         NetworkImageRepository(
             urlSession: get(AnyKey.urlSession)
         )
