@@ -29,19 +29,6 @@ public struct ProvidesMacro: PeerMacro {
                   let type = binding.typeAnnotation?.type else {
                 throw MessageError("Expected a type annotation.")
             }
-            if varDecl.bindingSpecifier.tokenKind == .keyword(.var) {
-                if binding.accessorBlock == nil {
-                    context.diagnose(.init(
-                        node: declaration,
-                        message: ProvidesMacroDiagnostic.plainVar,
-                        fixIt: .replace(
-                            message: ProvidesMacroDiagnostic.plainVar,
-                            oldNode: varDecl.bindingSpecifier,
-                            newNode: TokenSyntax(.keyword(.let), presence: .present)
-                        )
-                    ))
-                }
-            }
             returnType = type
             callExpr = "\(binding.pattern)"
         } else {
@@ -49,10 +36,8 @@ public struct ProvidesMacro: PeerMacro {
         }
 
         return ["""
-        @Sendable private func __provide_\(raw: funcNameSafe(keyIdentifier))(container: DI.Container) -> \(returnType.trimmed) {
-            var copy = self
-            copy.container = container
-            let instance = copy.\(callExpr)
+        @Sendable private static func __provide_\(raw: funcNameSafe(keyIdentifier))(`self`: Self) -> \(returnType.trimmed) {
+            let instance = self.\(callExpr)
             assert({
                 let check = DI.VariantChecker(\(raw: keyIdentifier))
                 return check(instance)

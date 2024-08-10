@@ -22,10 +22,8 @@ struct RootComponent {
         APIClient()
     }
 
-    @Sendable private func __provide__apiClient(container: DI.Container) -> APIClient {
-        var copy = self
-        copy.container = container
-        let instance = copy.apiClient()
+    @Sendable private static func __provide__apiClient(`self`: Self) -> APIClient {
+        let instance = self.apiClient()
         assert({
             let check = DI.VariantChecker(.apiClient)
             return check(instance)
@@ -62,8 +60,7 @@ struct RootComponent {
         )
     }
 
-    func testProperty() {
-        // stored var
+    func testStoredVar() {
         assertMacroExpansion(
 """
 struct RootComponent {
@@ -75,10 +72,8 @@ expandedSource: """
 struct RootComponent {
     var urlSession: URLSession
 
-    @Sendable private func __provide__urlSession(container: DI.Container) -> URLSession {
-        var copy = self
-        copy.container = container
-        let instance = copy.urlSession
+    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
+        let instance = self.urlSession
         assert({
             let check = DI.VariantChecker(.urlSession)
             return check(instance)
@@ -87,21 +82,11 @@ struct RootComponent {
     }
 }
 """,
-diagnostics: [
-    .init(
-        message: "Attaching @Provides to a stored 'var' may cause unexpected behavior, because modifying it after the initContainer(parent:) call does not affect the container.",
-        line: 2,
-        column: 5,
-        severity: .warning,
-        fixIts: [.init(
-            message: "change 'var' to 'let'"
-        )]
-    )
-],
 macros: macros
         )
+    }
 
-        // computed var
+    func testComputedVar() {
         assertMacroExpansion("""
 struct RootComponent {
     @Provides(.urlSession)
@@ -115,10 +100,8 @@ struct RootComponent {
         .shared
     }
 
-    @Sendable private func __provide__urlSession(container: DI.Container) -> URLSession {
-        var copy = self
-        copy.container = container
-        let instance = copy.urlSession
+    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
+        let instance = self.urlSession
         assert({
             let check = DI.VariantChecker(.urlSession)
             return check(instance)
@@ -128,8 +111,46 @@ struct RootComponent {
 }
 """, macros: macros
         )
+    }
 
-        // stored let
+    func testComputedVarAccessors() {
+        assertMacroExpansion("""
+struct RootComponent {
+    @Provides(.urlSession)
+    var urlSession: URLSession {
+        set {
+            fatalError()
+        }
+        get {
+            .shared
+        }
+    }
+}
+""", expandedSource: """
+struct RootComponent {
+    var urlSession: URLSession {
+        set {
+            fatalError()
+        }
+        get {
+            .shared
+        }
+    }
+
+    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
+        let instance = self.urlSession
+        assert({
+            let check = DI.VariantChecker(.urlSession)
+            return check(instance)
+        }())
+        return instance
+    }
+}
+""", macros: macros
+        )
+    }
+
+    func testStoredLet() {
         assertMacroExpansion("""
 struct RootComponent {
     @Provides(.urlSession)
@@ -139,10 +160,8 @@ struct RootComponent {
 struct RootComponent {
     let urlSession: URLSession
 
-    @Sendable private func __provide__urlSession(container: DI.Container) -> URLSession {
-        var copy = self
-        copy.container = container
-        let instance = copy.urlSession
+    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
+        let instance = self.urlSession
         assert({
             let check = DI.VariantChecker(.urlSession)
             return check(instance)
@@ -169,8 +188,4 @@ struct RootComponent {
 ], macros: macros
         )
     }
-}
-
-struct S {
-    var foo: Int, bar: Int
 }

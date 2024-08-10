@@ -17,14 +17,20 @@ struct EmptyComponent {
 """, expandedSource: """
 struct EmptyComponent {
 
+    static var requirements: Set<DI.AnyKey> {
+        []
+    }
+
     var container = DI.Container()
+
+    var parents = [any DI.Component] ()
 
     init(parent: some DI.Component) {
         initContainer(parent: parent)
     }
 
-    private mutating func initContainer(parent: some DI.Component) {
-        container = parent.container
+    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -42,14 +48,20 @@ struct RootComponent {
 """, expandedSource: """
 struct RootComponent {
 
-    var container = DI.Container()
-
-    init() {
-        initContainer(parent: self)
+    static var requirements: Set<DI.AnyKey> {
+        []
     }
 
-    private mutating func initContainer(parent: some DI.Component) {
-        container = parent.container
+    var container = DI.Container()
+
+    var parents = [any DI.Component] ()
+
+    init() {
+        initContainer(parent: nil)
+    }
+
+    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -79,13 +91,14 @@ struct RootComponent {
 
     var container = DI.Container()
 
+    var parents = [any DI.Component] ()
+
     init() {
-        initContainer(parent: self)
+        initContainer(parent: nil)
     }
 
-    private mutating func initContainer(parent: some DI.Component) {
-        assertRequirements(Self.requirements, container: parent.container)
-        container = parent.container
+    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -118,10 +131,8 @@ struct AnonymousComponent {
         URL(string: "https://foo.example.com/\(get(.apiVersion))/")!
     }
 
-    @Sendable private func __provide_baseURLKey(container: DI.Container) -> URL {
-        var copy = self
-        copy.container = container
-        let instance = copy.baseURL()
+    @Sendable private static func __provide_baseURLKey(`self`: Self) -> URL {
+        let instance = self.baseURL()
         assert({
             let check = DI.VariantChecker(baseURLKey)
             return check(instance)
@@ -141,15 +152,17 @@ struct AnonymousComponent {
 
     var container = DI.Container()
 
+    var parents = [any DI.Component] ()
+
     init(parent: some DI.Component) {
         initContainer(parent: parent)
     }
 
-    private mutating func initContainer(parent: some DI.Component) {
-        assertRequirements(Self.requirements, container: parent.container)
-        container = parent.container
-        let __macro_local_3setfMu_ = container.setter(for: baseURLKey)
-        __macro_local_3setfMu_(&container, __provide_baseURLKey)
+    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+        var metadata = ComponentProvidingMetadata<Self>()
+        let __macro_local_3setfMu_ = metadata.setter(for: baseURLKey)
+        __macro_local_3setfMu_(&metadata, __provide_baseURLKey)
+        return metadata
     }
 }
 
@@ -167,9 +180,7 @@ struct MyComponent {
     var manager: any Manager {
         AppManager(
             foo: get(.foo),
-            bar: self.get(.bar),
-            baz: container.get(.baz),
-            qux: self.container.get(.qux)
+            bar: self.get(.bar)
         )
     }
 }
@@ -179,25 +190,24 @@ struct MyComponent {
     var manager: any Manager {
         AppManager(
             foo: get(.foo),
-            bar: self.get(.bar),
-            baz: container.get(.baz),
-            qux: self.container.get(.qux)
+            bar: self.get(.bar)
         )
     }
 
     static var requirements: Set<DI.AnyKey> {
-        [.bar, .baz, .foo, .qux]
+        [.bar, .foo]
     }
 
     var container = DI.Container()
+
+    var parents = [any DI.Component] ()
 
     init(parent: some DI.Component) {
         initContainer(parent: parent)
     }
 
-    private mutating func initContainer(parent: some DI.Component) {
-        assertRequirements(Self.requirements, container: parent.container)
-        container = parent.container
+    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -216,14 +226,20 @@ public struct RootComponent {
 """#, expandedSource: #"""
 public struct RootComponent {
 
-    public var container = DI.Container()
-
-    public init() {
-        initContainer(parent: self)
+    static var requirements: Set<DI.AnyKey> {
+        []
     }
 
-    private mutating func initContainer(parent: some DI.Component) {
-        container = parent.container
+    public var container = DI.Container()
+
+    public var parents = [any DI.Component] ()
+
+    public init() {
+        initContainer(parent: nil)
+    }
+
+    public static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -240,14 +256,20 @@ public struct MyComponent {
 """#, expandedSource: #"""
 public struct MyComponent {
 
+    static var requirements: Set<DI.AnyKey> {
+        []
+    }
+
     public var container = DI.Container()
+
+    public var parents = [any DI.Component] ()
 
     public init(parent: some DI.Component) {
         initContainer(parent: parent)
     }
 
-    private mutating func initContainer(parent: some DI.Component) {
-        container = parent.container
+    public static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -271,10 +293,16 @@ struct MyComponent {
     init(parent: some DI.Component) {
     }
 
+    static var requirements: Set<DI.AnyKey> {
+        []
+    }
+
     var container = DI.Container()
 
-    private mutating func initContainer(parent: some DI.Component) {
-        container = parent.container
+    var parents = [any DI.Component] ()
+
+    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+        return ComponentProvidingMetadata<Self>()
     }
 }
 
@@ -338,18 +366,25 @@ struct MyComponent {
         )
     }
 
+    static var requirements: Set<DI.AnyKey> {
+        []
+    }
+
     var container = DI.Container()
+
+    var parents = [any DI.Component] ()
 
     init(parent: some DI.Component) {
         initContainer(parent: parent)
     }
 
-    private mutating func initContainer(parent: some DI.Component) {
-        container = parent.container
-        let __macro_local_3setfMu_ = container.setter(for: .bar)
-        __macro_local_3setfMu_(&container, __provide__bar)
-        let __macro_local_3setfMu0_ = container.setter(for: .foo)
-        __macro_local_3setfMu0_(&container, __provide__foo)
+    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+        var metadata = ComponentProvidingMetadata<Self>()
+        let __macro_local_3setfMu_ = metadata.setter(for: .bar)
+        __macro_local_3setfMu_(&metadata, __provide__bar)
+        let __macro_local_3setfMu0_ = metadata.setter(for: .foo)
+        __macro_local_3setfMu0_(&metadata, __provide__foo)
+        return metadata
     }
 }
 

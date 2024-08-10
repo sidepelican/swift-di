@@ -3,7 +3,8 @@
     names:
         named(requirements),
     named(container),
-    named(initContainer),
+    named(parents),
+    named(buildMetadata),
     named(init(parent:)),
     named(init())
 )
