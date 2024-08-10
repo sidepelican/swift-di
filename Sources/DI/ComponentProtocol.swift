@@ -17,6 +17,11 @@ extension Component {
         }
     }
 
+    @inlinable
+    public func _get<I>(_ key: Key<I>, with components: [any Component]) -> I {
+        return container.get(key, with: components)
+    }
+
     public mutating func initContainer(parent: (any DI.Component)?) {
         if let parent {
             assertRequirements(Self.requirements, container: parent.container)

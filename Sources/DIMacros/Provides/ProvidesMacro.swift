@@ -43,7 +43,7 @@ public struct ProvidesMacro: PeerMacro {
             // TODO: getterブロック内で`self.get`と呼び出されていた場合にも対応したい
             instanceDecl = """
             func `get`<I>(_ key: Key<I>) -> I {
-                self.container.get(key, with: components)
+                self._get(key, with: components)
             }
             var instance: \(returnType.trimmed) {
                 \(getterBlock)
