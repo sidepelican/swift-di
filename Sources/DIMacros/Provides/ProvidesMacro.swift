@@ -38,30 +38,30 @@ public struct ProvidesMacro: PeerMacro {
             throw MessageError("@Provides should be added to the 'func' or 'var' or 'let'.")
         }
 
-        let f = try FunctionDeclSyntax("@Sendable private static func __provide_\(raw: funcNameSafe(keyIdentifier))(`self`: Self, components: [any Component]) -> \(returnType.trimmed)") {
-            if let getterBlock {
-                """
-                func `get`<I>(_ key: Key<I>) -> I {
-                    self.container.get(key, with: components)
-                }
-                """
-                """
-                let instance = { () -> \(returnType.trimmed) in
-                    \(SelfGetRewriter().visit(getterBlock).trimmed)
-                }()
-                """
-            } else {
-                "let instance = self.\(callExpr)"
+        let instanceDecl: DeclSyntax
+        if let getterBlock {
+            instanceDecl = """
+            func `get`<I>(_ key: Key<I>) -> I {
+                self.container.get(key, with: components)
             }
+            let instance = {
+                \(SelfGetRewriter().visit(getterBlock).trimmed)
+            }()
             """
+        } else {
+            instanceDecl = "let instance = self.\(callExpr)"
+        }
+
+        return ["""
+        @Sendable private static func __provide_\(raw: funcNameSafe(keyIdentifier))(`self`: Self, components: [any Component]) -> \(returnType.trimmed) {
+            \(instanceDecl)
             assert({
                 let check = DI.VariantChecker(\(raw: keyIdentifier))
                 return check(instance)
             }())
-            """
-            "return instance"
+            return instance
         }
-        return [DeclSyntax(f)]
+        """]
     }
 }
 
