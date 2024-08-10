@@ -39,35 +39,33 @@ public struct ProvidesMacro: PeerMacro {
         }
 
         let keyFuncName = funcNameSafe(keyIdentifier)
-        var result: [any DeclSyntaxProtocol] = []
+        var result: [DeclSyntax] = []
 
         if let getterBlock {
             let getterFuncName = context.makeUniqueName(keyFuncName)
             callExpr = "\(getterFuncName)(with: components)"
-            result.append(try FunctionDeclSyntax("private func \(getterFuncName)(with components: [any DI.Component]) -> \(returnType.trimmed)") {
-                """
+            result.append("""
+            private func \(getterFuncName)(with components: [any DI.Component]) -> \(returnType.trimmed) {
                 func `get`<I>(_ key: Key<I>) -> I {
                     self.container.get(key, with: components)
                 }
-                """
-                """
                 return {
                     \(SelfGetRewriter().visit(getterBlock).trimmed)
                 }()
-                """
-            })
+            }
+            """)
         }
-        result.append(try FunctionDeclSyntax("@Sendable private static func __provide_\(raw: keyFuncName)(`self`: Self, components: [any DI.Component]) -> \(returnType.trimmed)") {
-            "let instance = self.\(callExpr)"
-            """
+        result.append("""
+        @Sendable private static func __provide_\(raw: keyFuncName)(`self`: Self, components: [any DI.Component]) -> \(returnType.trimmed) {
+            let instance = self.\(callExpr)
             assert({
                 let check = DI.VariantChecker(\(raw: keyIdentifier))
                 return check(instance)
             }())
-            """
-            "return instance"
-        })
-        return result.map { DeclSyntax($0) }
+            return instance
+        }
+        """)
+        return result
     }
 }
 

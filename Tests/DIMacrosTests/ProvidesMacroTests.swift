@@ -13,26 +13,33 @@ final class ProvidesMacroTests: XCTestCase {
 struct RootComponent {
     @Provides(.apiClient)
     func apiClient() -> APIClient {
-        APIClient()
+        let config = get(.apiConfig)
+        return APIClient(config: config)
     }
 }
 """, expandedSource: """
 struct RootComponent {
     func apiClient() -> APIClient {
-        APIClient()
+        let config = get(.apiConfig)
+        return APIClient(config: config)
     }
 
-    @Sendable private static func __provide__apiClient(`self`: Self, components: [any DI.Component]) -> APIClient {
+    private func __macro_local_10_apiClientfMu_(with components: [any DI.Component]) -> APIClient {
         func `get`<I>(_ key: Key<I>) -> I {
             self.container.get(key, with: components)
         }
-        let instance = { () -> APIClient in
-            APIClient()
+        return {
+            let config = get(.apiConfig)
+                    return APIClient(config: config)
         }()
+    }
+
+    @Sendable private static func __provide__apiClient(`self`: Self, components: [any DI.Component]) -> APIClient {
+        let instance = self.__macro_local_10_apiClientfMu_(with: components)
         assert({
             let check = DI.VariantChecker(.apiClient)
             return check(instance)
-            }())
+        }())
         return instance
     }
 }
@@ -80,7 +87,7 @@ struct RootComponent {
         assert({
             let check = DI.VariantChecker(.urlSession)
             return check(instance)
-            }())
+        }())
         return instance
     }
 }
@@ -105,7 +112,7 @@ struct RootComponent {
         assert({
             let check = DI.VariantChecker(.urlSession)
             return check(instance)
-            }())
+        }())
         return instance
     }
 }
@@ -128,17 +135,21 @@ struct RootComponent {
         .shared
     }
 
-    @Sendable private static func __provide__urlSession(`self`: Self, components: [any DI.Component]) -> URLSession {
+    private func __macro_local_11_urlSessionfMu_(with components: [any DI.Component]) -> URLSession {
         func `get`<I>(_ key: Key<I>) -> I {
             self.container.get(key, with: components)
         }
-        let instance = { () -> URLSession in
+        return {
             .shared
         }()
+    }
+
+    @Sendable private static func __provide__urlSession(`self`: Self, components: [any DI.Component]) -> URLSession {
+        let instance = self.__macro_local_11_urlSessionfMu_(with: components)
         assert({
             let check = DI.VariantChecker(.urlSession)
             return check(instance)
-            }())
+        }())
         return instance
     }
 }
@@ -184,7 +195,7 @@ struct RootComponent {
         assert({
             let check = DI.VariantChecker(.urlSession)
             return check(instance)
-            }())
+        }())
         return instance
     }
 }
