@@ -44,9 +44,9 @@ public struct ProvidesMacro: PeerMacro {
             func `get`<I>(_ key: Key<I>) -> I {
                 self.container.get(key, with: components)
             }
-            let instance = {
-                \(SelfGetRewriter().visit(getterBlock).trimmed)
-            }()
+            var instance: \(returnType.trimmed) {
+                \(SelfGetRewriter().visit(getterBlock))
+            }
             """
         } else {
             instanceDecl = "let instance = self.\(callExpr)"
@@ -72,7 +72,7 @@ extension AccessorBlockSyntax.Accessors {
             return syntax
         case .accessors(let list):
             return list.first { decl in
-                decl.accessorSpecifier.tokenKind == .keyword(.get)
+                decl.accessorSpecifier == .keyword(.get)
             }?.body?.statements
         }
     }
@@ -80,12 +80,9 @@ extension AccessorBlockSyntax.Accessors {
 
 private class SelfGetRewriter: SyntaxRewriter {
     override func visit(_ node: FunctionCallExprSyntax) -> ExprSyntax {
-        if node.calledExpression.trimmedDescription == "self.get" {
+        if node.calledExpression.description == "self.get" {
             var node = node
-            node.calledExpression = ExprSyntax(
-                DeclReferenceExprSyntax(baseName: .identifier("get"))
-                    .with(\.leadingTrivia, node.calledExpression.leadingTrivia)
-            )
+            node.calledExpression = "get"
             return ExprSyntax(node)
         }
         return super.visit(node)

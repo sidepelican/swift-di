@@ -5,9 +5,6 @@ extension AnyKey {
     fileprivate static let name = Key<String>()
     fileprivate static let age = Key<Int>()
     fileprivate static let message = Key<String>()
-    fileprivate static let getPatternA = Key<String>()
-    fileprivate static let getPatternB = Key<String>()
-    fileprivate static let getPatternC = Key<String>()
 }
 
 @Component(root: true)
@@ -39,26 +36,6 @@ fileprivate struct ParentComponent: Sendable {
         "I'm \(get(.name)), age=\(get(.age))"
     }
 
-    @Provides(.getPatternA)
-    var getPatternA: String {
-        self.get(.name) + get(.name)
-    }
-
-    @Provides(.getPatternB)
-    var getPatternB: String {
-        get {
-            "\(get(.name))\(self.get(.name))"
-        }
-    }
-
-    @Provides(.getPatternC)
-    func getPatternC() -> String {
-        return [
-            self.get(.name),
-            get(.name),
-        ].joined()
-    }
-
     var childComponent: ChildComponent {
         ChildComponent(parent: self)
     }
@@ -71,10 +48,6 @@ fileprivate struct ChildComponent: Sendable {
 
     func message() -> String {
         get(.message)
-    }
-
-    func getPatterns() -> (String, String, String) {
-        (get(.getPatternA), get(.getPatternB), get(.getPatternC))
     }
 }
 
@@ -93,14 +66,5 @@ final class ComponentTests: XCTestCase {
 
         child.name = "Foo"
         XCTAssertEqual(child.message(), "I'm Foo, age=42")
-    }
-
-    func testGetPatterns() {
-        var child = RootComponent().parentComponent.childComponent
-        child.name = "<>"
-        let (a, b, c) = child.getPatterns()
-        XCTAssertEqual(a, "<><>")
-        XCTAssertEqual(b, "<><>")
-        XCTAssertEqual(c, "<><>")
     }
 }
