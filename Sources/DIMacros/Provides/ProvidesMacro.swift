@@ -40,12 +40,13 @@ public struct ProvidesMacro: PeerMacro {
 
         let instanceDecl: DeclSyntax
         if let getterBlock {
+            // TODO: getterブロック内で`self.get`と呼び出されていた場合にも対応したい
             instanceDecl = """
             func `get`<I>(_ key: Key<I>) -> I {
                 self.container.get(key, with: components)
             }
             var instance: \(returnType.trimmed) {
-                \(SelfGetRewriter().visit(getterBlock))
+                \(getterBlock)
             }
             """
         } else {
@@ -75,16 +76,5 @@ extension AccessorBlockSyntax.Accessors {
                 decl.accessorSpecifier == .keyword(.get)
             }?.body?.statements
         }
-    }
-}
-
-private class SelfGetRewriter: SyntaxRewriter {
-    override func visit(_ node: FunctionCallExprSyntax) -> ExprSyntax {
-        if node.calledExpression.description == "self.get" {
-            var node = node
-            node.calledExpression = "get"
-            return ExprSyntax(node)
-        }
-        return super.visit(node)
     }
 }
