@@ -151,11 +151,15 @@ private func buildBuildMetadata(
     requiredKeys: [ExtractedKey],
     providingKeys: Set<ExtractedKey>,
     in context: some MacroExpansionContext
-) -> FunctionDeclSyntax {
-    return try! FunctionDeclSyntax("\(modifiers)static func buildMetadata() -> ComponentProvidingMetadata<Self>") {
-        if providingKeys.isEmpty {
-            "return ComponentProvidingMetadata<Self>()"
-        } else {
+) -> some DeclSyntaxProtocol {
+    if providingKeys.isEmpty {
+        return """
+        \(modifiers)static var provideMetadata: ComponentProvidingMetadata<Self> {
+            return ComponentProvidingMetadata<Self>()
+        }
+        """ as DeclSyntax
+    } else {
+        let c = ClosureExprSyntax {
             "var metadata = ComponentProvidingMetadata<Self>()"
             for key in providingKeys.sorted() {
                 let setterName = context.makeUniqueName("set")
@@ -164,6 +168,9 @@ private func buildBuildMetadata(
             }
             "return metadata"
         }
+        return """
+        \(modifiers)static let provideMetadata: ComponentProvidingMetadata<Self> = \(c)()
+        """ as DeclSyntax
     }
 }
 
