@@ -8,6 +8,7 @@ extension AnyKey {
     fileprivate static let getPatternA = Key<String>()
     fileprivate static let getPatternB = Key<String>()
     fileprivate static let getPatternC = Key<String>()
+    fileprivate static let priorityTest = Key<Int>()
 }
 
 @Component(root: true)
@@ -20,6 +21,13 @@ fileprivate struct RootComponent: Sendable {
     @Provides(.age)
     func age() -> Int {
         42
+    }
+
+    @Provides(.priorityTest, priority: .custom(10))
+    let priorityTest: Int = 10
+
+    func getPriority() -> Int {
+        get(.priorityTest)
     }
 
     var parentComponent: ParentComponent {
@@ -59,6 +67,13 @@ fileprivate struct ParentComponent: Sendable {
         ].joined()
     }
 
+    @Provides(.priorityTest, priority: .custom(20))
+    let priorityTest: Int = 20
+
+    func getPriority() -> Int {
+        get(.priorityTest)
+    }
+
     var childComponent: ChildComponent {
         ChildComponent(parent: self)
     }
@@ -75,6 +90,13 @@ fileprivate struct ChildComponent: Sendable {
 
     func getPatterns() -> (String, String, String) {
         (get(.getPatternA), get(.getPatternB), get(.getPatternC))
+    }
+
+    @Provides(.priorityTest, priority: .custom(0))
+    let priorityTest: Int = 0
+
+    func getPriority() -> Int {
+        get(.priorityTest)
     }
 }
 
@@ -102,5 +124,14 @@ final class ComponentTests: XCTestCase {
         XCTAssertEqual(a, "<><>")
         XCTAssertEqual(b, "<><>")
         XCTAssertEqual(c, "<><>")
+    }
+
+    func testPriority() {
+        let root = RootComponent()
+        XCTAssertEqual(root.getPriority(), 10)
+        let parent = root.parentComponent
+        XCTAssertEqual(parent.getPriority(), 20)
+        let child = parent.childComponent
+        XCTAssertEqual(child.getPriority(), 20)
     }
 }

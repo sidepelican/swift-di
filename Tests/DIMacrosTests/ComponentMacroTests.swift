@@ -169,7 +169,7 @@ struct AnonymousComponent {
 
     static let providingMetadata: ComponentProvidingMetadata<Self> = {
         var metadata = ComponentProvidingMetadata<Self>()
-        let __macro_local_3setfMu_ = metadata.setter(for: baseURLKey)
+        let __macro_local_3setfMu_ = metadata.setter(for: baseURLKey, priority: .default)
         __macro_local_3setfMu_(&metadata, __provide_baseURLKey)
         return metadata
     }()
@@ -389,10 +389,10 @@ struct MyComponent {
 
     static let providingMetadata: ComponentProvidingMetadata<Self> = {
         var metadata = ComponentProvidingMetadata<Self>()
-        let __macro_local_3setfMu_ = metadata.setter(for: .bar)
-        __macro_local_3setfMu_(&metadata, __provide__bar)
-        let __macro_local_3setfMu0_ = metadata.setter(for: .foo)
-        __macro_local_3setfMu0_(&metadata, __provide__foo)
+        let __macro_local_3setfMu_ = metadata.setter(for: .foo, priority: .default)
+        __macro_local_3setfMu_(&metadata, __provide__foo)
+        let __macro_local_3setfMu0_ = metadata.setter(for: .bar, priority: .default)
+        __macro_local_3setfMu0_(&metadata, __provide__bar)
         return metadata
     }()
 }
@@ -438,6 +438,59 @@ diagnostics: [
         ]
     ),
 ],
+macros: ["Component": ComponentMacro.self]
+        )
+    }
+
+    func testPriority() throws {
+        assertMacroExpansion(
+#"""
+@Component
+struct MyComponent {
+    @Provides(.foo, priority: .test)
+    let foo: Foo
+
+    @Provides(.bar, priority: .custom(2))
+    func bar() -> Bar {
+        Bar()
+    }
+}
+"""#,
+expandedSource: #"""
+struct MyComponent {
+    @Provides(.foo, priority: .test)
+    let foo: Foo
+
+    @Provides(.bar, priority: .custom(2))
+    func bar() -> Bar {
+        Bar()
+    }
+
+    static var requirements: Set<DI.AnyKey> {
+        []
+    }
+
+    var container = DI.Container()
+
+    var parents = [any DI.Component] ()
+
+    init(parent: some DI.Component) {
+        initContainer(parent: parent)
+    }
+
+    static let providingMetadata: ComponentProvidingMetadata<Self> = {
+        var metadata = ComponentProvidingMetadata<Self>()
+        let __macro_local_3setfMu_ = metadata.setter(for: .foo, priority: .test)
+        __macro_local_3setfMu_(&metadata, __provide__foo)
+        let __macro_local_3setfMu0_ = metadata.setter(for: .bar, priority: .custom(2))
+        __macro_local_3setfMu0_(&metadata, __provide__bar)
+        return metadata
+    }()
+}
+
+extension MyComponent: DI.Component {
+}
+"""#,
 macros: ["Component": ComponentMacro.self]
         )
     }
