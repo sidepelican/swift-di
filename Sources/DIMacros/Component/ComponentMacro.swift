@@ -151,11 +151,15 @@ private func buildBuildMetadata(
     requiredKeys: [ExtractedKey],
     providingKeys: Set<ExtractedKey>,
     in context: some MacroExpansionContext
-) -> FunctionDeclSyntax {
-    return try! FunctionDeclSyntax("\(modifiers)static func buildMetadata() -> ComponentProvidingMetadata<Self>") {
-        if providingKeys.isEmpty {
-            "return ComponentProvidingMetadata<Self>()"
-        } else {
+) -> some DeclSyntaxProtocol {
+    if providingKeys.isEmpty {
+        return ("""
+        \(modifiers)static var providingMetadata: ComponentProvidingMetadata<Self> {
+            return ComponentProvidingMetadata<Self>()
+        }
+        """ as DeclSyntax).cast(VariableDeclSyntax.self)
+    } else {
+        let c = ClosureExprSyntax {
             "var metadata = ComponentProvidingMetadata<Self>()"
             for key in providingKeys.sorted() {
                 let setterName = context.makeUniqueName("set")
@@ -163,6 +167,16 @@ private func buildBuildMetadata(
                 "\(setterName)(&metadata, __provide_\(raw: funcNameSafe(key)))"
             }
             "return metadata"
+        }
+
+        var modifiers = modifiers
+        modifiers.append(.init(name: .keyword(.static)))
+        return VariableDeclSyntax(modifiers: modifiers, bindingSpecifier: .keyword(.let)) {
+            PatternBindingSyntax(
+                pattern: IdentifierPatternSyntax(identifier: "providingMetadata"),
+                typeAnnotation: TypeAnnotationSyntax(type: "ComponentProvidingMetadata<Self>" as TypeSyntax),
+                initializer: .init(value: FunctionCallExprSyntax(callee: c))
+            )
         }
     }
 }

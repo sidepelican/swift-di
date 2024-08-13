@@ -1,7 +1,7 @@
 public protocol Component: Sendable {
     var container: Container { get set }
     var parents: [any Component] { get set }
-    static func buildMetadata() -> ComponentProvidingMetadata<Self>
+    static var providingMetadata: ComponentProvidingMetadata<Self> { get }
     static var requirements: Set<AnyKey> { get }
 }
 
@@ -18,7 +18,7 @@ extension Component {
             container = parent.container
             parents = parent.parents + CollectionOfOne<any Component>(parent)
         }
-        container.combine(metadata: Self.buildMetadata())
+        container.combine(metadata: Self.providingMetadata)
         for i in parents.indices {
             parents[i].container = container
         }
