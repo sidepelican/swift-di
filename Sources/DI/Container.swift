@@ -2,7 +2,7 @@ public struct ComponentProvidingMetadata<C>: Sendable {
     public init() {
     }
     
-    public var table: [AnyKey: any WitnessTableElement] = [:]
+    public var table: [AnyKey: any FunctionTableElement] = [:]
 
 //    @inlinable
 //    public mutating func set<I>(
@@ -14,23 +14,27 @@ public struct ComponentProvidingMetadata<C>: Sendable {
 
     @inlinable
     public func setter<I>(
-        for key: Key<I>
+        for key: Key<I>,
+        priority: Priority
     ) -> (inout Self, @escaping @Sendable (C, [any Component]) -> I) -> () {
         return { `self`, provide in
-            self.table[key] = FunctionDescriptor(ref: provide)
+            self.table[key] = FunctionDescriptor(priority: priority, ref: provide)
         }
     }
 }
 
-public protocol WitnessTableElement: Sendable {
+public protocol FunctionTableElement: Sendable {
     associatedtype ValueType
+    var priority: Priority { get }
 }
 
-@usableFromInline struct FunctionDescriptor<C, I>: WitnessTableElement {
-    @usableFromInline init(ref: @escaping @Sendable (C, [any Component]) -> I) {
+@usableFromInline struct FunctionDescriptor<C, I>: FunctionTableElement {
+    @usableFromInline init(priority: Priority, ref: @escaping @Sendable (C, [any Component]) -> I) {
+        self.priority = priority
         self.ref = ref
     }
     @usableFromInline typealias ValueType = C
+    @usableFromInline var priority: Priority
     @usableFromInline var ref: @Sendable (C, [any Component]) -> I
 }
 
@@ -39,7 +43,7 @@ public struct Container: Sendable {
     public init() {
     }
     
-    @usableFromInline var combinedMetadata: [AnyKey: any WitnessTableElement] = [:]
+    @usableFromInline var combinedMetadata: [AnyKey: any FunctionTableElement] = [:]
     
     @inlinable
     public var keys: some (Collection<AnyKey> & Sequence<AnyKey>) {
@@ -48,8 +52,14 @@ public struct Container: Sendable {
 
     @inlinable
     public mutating func combine(metadata: ComponentProvidingMetadata<some Component>) {
-        for (key, function) in metadata.table {
-            combinedMetadata[key] = function
+        for (key, element) in metadata.table {
+            if let found = combinedMetadata[key] {
+                if found.priority <= element.priority {
+                    combinedMetadata[key] = element
+                }
+            } else {
+                combinedMetadata[key] = element
+            }
         }
     }
 
@@ -67,7 +77,7 @@ public struct Container: Sendable {
         }
         return openAndRun(element)
 
-        func openAndRun<E: WitnessTableElement>(_ element: E) -> Instance {
+        func openAndRun<E: FunctionTableElement>(_ element: E) -> Instance {
             func applyIfMatched<C: Component>(_ component: C, element: E) -> Instance? {
                 if C.self == E.ValueType.self {
                     return (element as! FunctionDescriptor<C, Instance>).ref(component, components)

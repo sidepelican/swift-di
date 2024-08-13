@@ -3,7 +3,7 @@ import SwiftSyntax
 import SwiftSyntaxMacros
 
 internal struct FoundProvides {
-    var key: ExtractedKey
+    var arguments: ProvidesMacroArguments
     var callExpression: String
 }
 
@@ -32,16 +32,16 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
                 if let body = functionDecl.body {
                     requiredKeys.formUnion(extractKeysUsedInGet(in: body))
                 }
-                if let key = extractAttributes(attributes: functionDecl.attributes) {
-                    providings.append(.init(key: key, callExpression: "\(functionDecl.name)()"))
+                if let arguments = extractProvides(attributes: functionDecl.attributes) {
+                    providings.append(.init(arguments: arguments, callExpression: "\(functionDecl.name)()"))
                 }
             } else if let varDecl = member.decl.as(VariableDeclSyntax.self),
                       let binding = varDecl.bindings.first {
                 if let computedProp = binding.accessorBlock {
                     requiredKeys.formUnion(extractKeysUsedInGet(in: computedProp))
                 }
-                if let key = extractAttributes(attributes: varDecl.attributes) {
-                    providings.append(.init(key: key, callExpression: "\(binding.pattern)"))
+                if let arguments = extractProvides(attributes: varDecl.attributes) {
+                    providings.append(.init(arguments: arguments, callExpression: "\(binding.pattern)"))
                 }
             } else if let initDecl = member.decl.as(InitializerDeclSyntax.self) {
                 hasInitDecl = true
@@ -68,7 +68,7 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
             context.diagnose(d)
         }
 
-        requiredKeys.subtract(providings.map(\.key))
+        requiredKeys.subtract(providings.map(\.arguments.key))
         let requiredKeysSorted = requiredKeys.sorted()
 
         if isRoot && !requiredKeys.isEmpty {
@@ -94,7 +94,7 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
         result.append(buildBuildMetadata(
             modifiers: declaration.modifiers,
             requiredKeys: requiredKeysSorted,
-            providingKeys: Set(providings.map(\.key)),
+            providings: providings.map(\.arguments),
             in: context
         ))
         return result.map { DeclSyntax($0) }
@@ -119,13 +119,26 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
     }
 }
 
-private func extractAttributes(attributes: AttributeListSyntax) -> ExtractedKey? {
+internal struct ProvidesMacroArguments {
+    var key: ExtractedKey
+    var priority: ExprSyntax?
+}
+
+private func extractProvides(attributes: AttributeListSyntax) -> ProvidesMacroArguments? {
     if let providesAttr = attributes.first(where: {
         $0.as(AttributeSyntax.self)?.attributeName.description == "Provides"
     }) {
         if case .attribute(let providesAttr) = providesAttr {
             if let key = extractKey(from: providesAttr) {
-                return key
+                if let syntaxList = providesAttr.arguments?.as(LabeledExprListSyntax.self) {
+                    var itr = syntaxList.makeIterator()
+                    let _ = itr.next()
+                    let second = itr.next()
+                    if let second, second.label?.trimmedDescription == "priority" {
+                        return ProvidesMacroArguments(key: key, priority: second.expression)
+                    }
+                }
+                return ProvidesMacroArguments(key: key)
             }
         }
     }
@@ -149,10 +162,10 @@ private func buildInitDecl(
 private func buildBuildMetadata(
     modifiers: DeclModifierListSyntax,
     requiredKeys: [ExtractedKey],
-    providingKeys: Set<ExtractedKey>,
+    providings: [ProvidesMacroArguments],
     in context: some MacroExpansionContext
 ) -> some DeclSyntaxProtocol {
-    if providingKeys.isEmpty {
+    if providings.isEmpty {
         return ("""
         \(modifiers)static var providingMetadata: ComponentProvidingMetadata<Self> {
             return ComponentProvidingMetadata<Self>()
@@ -161,10 +174,10 @@ private func buildBuildMetadata(
     } else {
         let c = ClosureExprSyntax {
             "var metadata = ComponentProvidingMetadata<Self>()"
-            for key in providingKeys.sorted() {
+            for providing in providings {
                 let setterName = context.makeUniqueName("set")
-                "let \(setterName) = metadata.setter(for: \(raw: key))"
-                "\(setterName)(&metadata, __provide_\(raw: funcNameSafe(key)))"
+                "let \(setterName) = metadata.setter(for: \(raw: providing.key), priority: \(raw: providing.priority ?? ".default"))"
+                "\(setterName)(&metadata, __provide_\(raw: funcNameSafe(providing.key)))"
             }
             "return metadata"
         }
@@ -218,7 +231,7 @@ internal class CallArgumentsVisitor: SyntaxVisitor {
         if let providing = providings.first(where: {
             exprString == $0.callExpression || exprString.hasPrefix($0.callExpression + ".")
         }) {
-            let newNode = rawExprString.replacingOccurrences(of: providing.callExpression, with: "get(\(providing.key))")
+            let newNode = rawExprString.replacingOccurrences(of: providing.callExpression, with: "get(\(providing.arguments.key))")
             
             diagnostics.append(
                 .init(

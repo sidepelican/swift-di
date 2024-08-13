@@ -6,7 +6,7 @@ import XCTest
 final class CallArgumentsVisitorTests: XCTestCase {
     func testBasic() {
         let provide = FoundProvides(
-            key: .init(".foo" as ExprSyntax),
+            arguments: .init(key: .init(".foo" as ExprSyntax)),
             callExpression: "getFoo()"
         )
 
@@ -28,7 +28,7 @@ final class CallArgumentsVisitorTests: XCTestCase {
 
     func testSelf() {
         let provide = FoundProvides(
-            key: .init(".foo" as ExprSyntax),
+            arguments: .init(key: .init(".foo" as ExprSyntax)),
             callExpression: "getFoo()"
         )
 
@@ -50,7 +50,7 @@ final class CallArgumentsVisitorTests: XCTestCase {
 
     func testMemberAccess() {
         let provide = FoundProvides(
-            key: .init(".foo" as ExprSyntax),
+            arguments: .init(key: .init(".foo" as ExprSyntax)),
             callExpression: "getFoo()"
         )
 
@@ -72,7 +72,7 @@ final class CallArgumentsVisitorTests: XCTestCase {
 
     func testConfusingPrefix() {
         let provide = FoundProvides(
-            key: .init(".foo" as ExprSyntax),
+            arguments: .init(key: .init(".foo" as ExprSyntax)),
             callExpression: "foo"
         )
 
@@ -87,7 +87,7 @@ final class CallArgumentsVisitorTests: XCTestCase {
 
     func testEscapeByTuple() {
         let provide = FoundProvides(
-            key: .init(".foo" as ExprSyntax),
+            arguments: .init(key: .init(".foo" as ExprSyntax)),
             callExpression: "foo"
         )
 

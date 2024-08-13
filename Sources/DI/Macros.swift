@@ -18,4 +18,7 @@ public macro Component(root: Bool? = nil) = #externalMacro(module: "DIMacros", t
     peer,
     names: arbitrary
 )
-public macro Provides<I>(_ key: Key<I>) = #externalMacro(module: "DIMacros", type: "ProvidesMacro")
+public macro Provides<I>(
+    _ key: Key<I>,
+    priority: Priority = .default
+) = #externalMacro(module: "DIMacros", type: "ProvidesMacro")
