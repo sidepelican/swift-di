@@ -29,7 +29,7 @@ struct EmptyComponent {
         initContainer(parent: parent)
     }
 
-    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+    static var providingMetadata: ComponentProvidingMetadata<Self> {
         return ComponentProvidingMetadata<Self>()
     }
 }
@@ -60,7 +60,7 @@ struct RootComponent {
         initContainer(parent: nil)
     }
 
-    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+    static var providingMetadata: ComponentProvidingMetadata<Self> {
         return ComponentProvidingMetadata<Self>()
     }
 }
@@ -97,7 +97,7 @@ struct RootComponent {
         initContainer(parent: nil)
     }
 
-    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+    static var providingMetadata: ComponentProvidingMetadata<Self> {
         return ComponentProvidingMetadata<Self>()
     }
 }
@@ -167,12 +167,12 @@ struct AnonymousComponent {
         initContainer(parent: parent)
     }
 
-    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+    static let providingMetadata: ComponentProvidingMetadata<Self> = {
         var metadata = ComponentProvidingMetadata<Self>()
         let __macro_local_3setfMu_ = metadata.setter(for: baseURLKey)
         __macro_local_3setfMu_(&metadata, __provide_baseURLKey)
         return metadata
-    }
+    }()
 }
 
 extension AnonymousComponent: DI.Component {
@@ -215,7 +215,7 @@ struct MyComponent {
         initContainer(parent: parent)
     }
 
-    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+    static var providingMetadata: ComponentProvidingMetadata<Self> {
         return ComponentProvidingMetadata<Self>()
     }
 }
@@ -247,7 +247,7 @@ public struct RootComponent {
         initContainer(parent: nil)
     }
 
-    public static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+    public static var providingMetadata: ComponentProvidingMetadata<Self> {
         return ComponentProvidingMetadata<Self>()
     }
 }
@@ -277,7 +277,7 @@ public struct MyComponent {
         initContainer(parent: parent)
     }
 
-    public static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+    public static var providingMetadata: ComponentProvidingMetadata<Self> {
         return ComponentProvidingMetadata<Self>()
     }
 }
@@ -310,7 +310,7 @@ struct MyComponent {
 
     var parents = [any DI.Component] ()
 
-    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+    static var providingMetadata: ComponentProvidingMetadata<Self> {
         return ComponentProvidingMetadata<Self>()
     }
 }
@@ -387,14 +387,14 @@ struct MyComponent {
         initContainer(parent: parent)
     }
 
-    static func buildMetadata() -> ComponentProvidingMetadata<Self> {
+    static let providingMetadata: ComponentProvidingMetadata<Self> = {
         var metadata = ComponentProvidingMetadata<Self>()
         let __macro_local_3setfMu_ = metadata.setter(for: .bar)
         __macro_local_3setfMu_(&metadata, __provide__bar)
         let __macro_local_3setfMu0_ = metadata.setter(for: .foo)
         __macro_local_3setfMu0_(&metadata, __provide__foo)
         return metadata
-    }
+    }()
 }
 
 extension MyComponent: DI.Component {

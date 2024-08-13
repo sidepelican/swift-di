@@ -153,11 +153,11 @@ private func buildBuildMetadata(
     in context: some MacroExpansionContext
 ) -> some DeclSyntaxProtocol {
     if providingKeys.isEmpty {
-        return """
-        \(modifiers)static var provideMetadata: ComponentProvidingMetadata<Self> {
+        return ("""
+        \(modifiers)static var providingMetadata: ComponentProvidingMetadata<Self> {
             return ComponentProvidingMetadata<Self>()
         }
-        """ as DeclSyntax
+        """ as DeclSyntax).cast(VariableDeclSyntax.self)
     } else {
         let c = ClosureExprSyntax {
             "var metadata = ComponentProvidingMetadata<Self>()"
@@ -168,9 +168,16 @@ private func buildBuildMetadata(
             }
             "return metadata"
         }
-        return """
-        \(modifiers)static let provideMetadata: ComponentProvidingMetadata<Self> = \(c)()
-        """ as DeclSyntax
+
+        var modifiers = modifiers
+        modifiers.append(.init(name: .keyword(.static)))
+        return VariableDeclSyntax(modifiers: modifiers, bindingSpecifier: .keyword(.let)) {
+            PatternBindingSyntax(
+                pattern: IdentifierPatternSyntax(identifier: "providingMetadata"),
+                typeAnnotation: TypeAnnotationSyntax(type: "ComponentProvidingMetadata<Self>" as TypeSyntax),
+                initializer: .init(value: FunctionCallExprSyntax(callee: c))
+            )
+        }
     }
 }
 

@@ -4,7 +4,7 @@
         named(requirements),
     named(container),
     named(parents),
-    named(provideMetadata),
+    named(providingMetadata),
     named(init(parent:)),
     named(init())
 )
