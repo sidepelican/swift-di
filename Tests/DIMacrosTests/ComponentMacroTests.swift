@@ -186,8 +186,12 @@ extension AnonymousComponent: DI.Component {
 #"""
 @Component
 struct MyComponent {
-    var manager: any Manager {
-        AppManager(
+    var repository: any Repository {
+        self.get(.repository)
+    }
+
+    func manager() -> any Manager {
+        return AppManager(
             foo: get(.foo),
             bar: self.get(.bar)
         )
@@ -196,15 +200,19 @@ struct MyComponent {
 """#,
 expandedSource: #"""
 struct MyComponent {
-    var manager: any Manager {
-        AppManager(
+    var repository: any Repository {
+        self.get(.repository)
+    }
+
+    func manager() -> any Manager {
+        return AppManager(
             foo: get(.foo),
             bar: self.get(.bar)
         )
     }
 
     static var requirements: Set<DI.AnyKey> {
-        [.bar, .foo]
+        [.bar, .foo, .repository]
     }
 
     var container = DI.Container()

@@ -51,7 +51,7 @@ private class GetCallVisitor: SyntaxVisitor {
     var keys = [ExprSyntax]()
 
     override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
-        if ["get", "self.get"].contains(node.calledExpression.description) {
+        if ["get", "self.get"].contains(node.calledExpression.trimmedDescription) {
             if let firstArg = node.arguments.first?.expression {
                 keys.append(firstArg)
             }
