@@ -12,6 +12,15 @@ extension Component {
         return container.get(key, with: components)
     }
 
+    @inlinable
+    public mutating func override<I: Sendable>(
+        _ key: Key<I>,
+        value: I,
+        priority: Priority = .default
+    ) {
+        container.setFixed(key, priority: priority, value: value)
+    }
+
     public mutating func initContainer(parent: (any DI.Component)?) {
         if let parent {
             assertRequirements(Self.requirements, container: parent.container)
