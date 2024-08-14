@@ -134,4 +134,24 @@ final class ComponentTests: XCTestCase {
         let child = parent.childComponent
         XCTAssertEqual(child.getPriority(), 20)
     }
+
+    func testOverride() {
+        var parent = RootComponent().parentComponent
+        XCTAssertEqual(parent.message, "I'm ParentComponent, age=42")
+
+        // Override without/with priority
+        parent.override(.name, value: "Overridden")
+        parent.override(.age, value: -1, priority: .custom(-1))
+        XCTAssertEqual(parent.message, "I'm Overridden, age=42")
+        parent.override(.age, value: 99)
+        XCTAssertEqual(parent.message, "I'm Overridden, age=99")
+
+        // The .name property becomes the child component’s one, but .age remains overridden because the child component does not provide the .age property.
+        var child = parent.childComponent
+        XCTAssertEqual(child.message(), "I'm ChildComponent, age=99")
+
+        parent.override(.name, value: "Overridden", priority: .test)
+        child = parent.childComponent
+        XCTAssertEqual(child.message(), "I'm Overridden, age=99")
+    }
 }

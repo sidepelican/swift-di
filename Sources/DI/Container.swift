@@ -18,7 +18,7 @@ public struct ComponentProvidingMetadata<C>: Sendable {
         priority: Priority
     ) -> (inout Self, @escaping @Sendable (C, [any Component]) -> I) -> () {
         return { `self`, provide in
-            self.table[key] = FunctionDescriptor(priority: priority, ref: provide)
+            self.table[key] = ComponentFunctionElement(priority: priority, ref: provide)
         }
     }
 }
@@ -28,7 +28,7 @@ public protocol FunctionTableElement: Sendable {
     var priority: Priority { get }
 }
 
-@usableFromInline struct FunctionDescriptor<C, I>: FunctionTableElement {
+@usableFromInline struct ComponentFunctionElement<C, I>: FunctionTableElement {
     @usableFromInline init(priority: Priority, ref: @escaping @Sendable (C, [any Component]) -> I) {
         self.priority = priority
         self.ref = ref
@@ -38,13 +38,25 @@ public protocol FunctionTableElement: Sendable {
     @usableFromInline var ref: @Sendable (C, [any Component]) -> I
 }
 
+@usableFromInline enum ValueTypeForFixedValueElement {}
+
+@usableFromInline struct FixedValueElement<I>: @unchecked Sendable, FunctionTableElement {
+    @usableFromInline init(priority: Priority, value: I) where I: Sendable {
+        self.priority = priority
+        self.value = value
+    }
+    @usableFromInline typealias ValueType = ValueTypeForFixedValueElement
+    @usableFromInline var priority: Priority
+    @usableFromInline var value: I
+}
+
 public struct Container: Sendable {
     @inlinable
     public init() {
     }
     
     @usableFromInline var combinedMetadata: [AnyKey: any FunctionTableElement] = [:]
-    
+
     @inlinable
     public var keys: some (Collection<AnyKey> & Sequence<AnyKey>) {
         return combinedMetadata.keys
@@ -64,6 +76,21 @@ public struct Container: Sendable {
     }
 
     @inlinable
+    public mutating func setFixed<Instance: Sendable>(
+        _ key: Key<Instance>,
+        priority: Priority,
+        value: Instance
+    ) {
+        if let found = combinedMetadata[key] {
+            if found.priority <= priority {
+                combinedMetadata[key] = FixedValueElement(priority: priority, value: value)
+            }
+        } else {
+            combinedMetadata[key] = FixedValueElement(priority: priority, value: value)
+        }
+    }
+
+    @inlinable
     public func get<Instance>(
         _ key: Key<Instance>,
         with components: [any Component]
@@ -79,8 +106,8 @@ public struct Container: Sendable {
 
         func openAndRun<E: FunctionTableElement>(_ element: E) -> Instance {
             func applyIfMatched<C: Component>(_ component: C, element: E) -> Instance? {
-                if C.self == E.ValueType.self {
-                    return (element as! FunctionDescriptor<C, Instance>).ref(component, components)
+                if E.ValueType.self == C.self {
+                    return (element as! ComponentFunctionElement<C, Instance>).ref(component, components)
                 }
                 return nil
             }
@@ -88,6 +115,10 @@ public struct Container: Sendable {
                 if let found = applyIfMatched(parent, element: element) {
                     return found
                 }
+            }
+
+            if E.ValueType.self == ValueTypeForFixedValueElement.self {
+                return (element as! FixedValueElement<Instance>).value
             }
             preconditionFailure("Matched component not found. expected=\(E.ValueType.self), components=\(components.map({ type(of: $0) }))")
         }
