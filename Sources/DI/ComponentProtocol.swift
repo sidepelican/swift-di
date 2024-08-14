@@ -18,7 +18,13 @@ extension Component {
         value: I,
         priority: Priority = .default
     ) {
+        for i in parents.indices {
+            parents[i].container = Container() // avoid CoW
+        }
         container.setFixed(key, priority: priority, value: value)
+        for i in parents.indices {
+            parents[i].container = container
+        }
     }
 
     public mutating func initContainer(parent: (any DI.Component)?) {
