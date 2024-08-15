@@ -156,12 +156,11 @@ final class ComponentTests: XCTestCase {
         XCTAssertEqual(child.message(), "I'm ChildComponent, age=42")
 
         parent.bind(value: "Overridden", forKey: .name, priority: .test)
-        parent.bi
         child = parent.childComponent
         XCTAssertEqual(child.message(), "I'm Overridden, age=42")
     }
 
-    func testBind1InChildAndUseInParent() {
+    func testBindInChildAndUseInParent() {
         var child = RootComponent().parentComponent.childComponent
         XCTAssertEqual(child.message(), "I'm ChildComponent, age=42")
         child.bind(value: "Overridden", forKey: .name)
