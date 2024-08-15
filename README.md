@@ -7,7 +7,7 @@ Swift DI is a component-based DI (Dependency Injection) library designed specifi
 The DI container is implemented as a value type to take advantage of Swift's features.
 No external executables are needed; it is implemented using standard Swift language features and macros.
 By using only Swift features, the DI container can easily adapt to new versions of Swift, and users can also extend it to customize behaviors.
-Multi-module compliance, Sendable conforming, and instance overwriting by lower components are supported.
+Multi-module compliance, Sendable conforming, and instance overwriting are supported.
 
 # Getting Started
 
@@ -65,6 +65,61 @@ struct ChildComponent {
         print(get(.foo)) // => Foo(name: "ChildComponent")
     }
 }
+```
+
+### Use Priority
+
+When `priority` is set, values with a lower priority will not overwrite those with a higher priority.
+
+```swift
+@Component(root: true)
+struct TestComponent {
+    @Provides(.name, priority: .test)
+    var name: String { "TestComponent" }
+}
+
+@Component
+struct AppComponent {
+    @Provides(.name, priority: .default)
+    var name: String { "AppComponent" }
+
+    func printName() {
+        print(get(.name))
+    }
+}
+
+let component = AppComponent(parent: TestComponent())
+component.printName() // TestComponent
+```
+
+### Manually Bind Value
+
+By using `bind(_:forKey:)`, you can procedurally override values.
+
+```swift
+@Component
+struct ParentComponent {
+    @Provides(.name)
+    var name: String = "ParentComponent"
+
+    @Provides(.age)
+    var age: Int = 42
+}
+
+@Component
+struct ChildComponent {
+    @Provides(.name)
+    var name: String = "ChildComponent"
+
+    func printProfile() {
+        print("name=\(get(.name)), age=\(get(.age))")
+    }
+}
+
+var component = ChildComponent(parent: ParentComponent())
+component.printProfile() // name=ChildComponent, age=42
+component.bind(10, forKey: .age)
+component.printProfile() // name=ChildComponent, age=10
 ```
 
 # Frequently Asked Questions

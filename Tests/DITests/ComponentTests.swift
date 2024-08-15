@@ -135,35 +135,35 @@ final class ComponentTests: XCTestCase {
         XCTAssertEqual(child.getPriority(), 20)
     }
 
-    func testOverride() {
+    func testBind() {
         var parent = RootComponent().parentComponent
         XCTAssertEqual(parent.message, "I'm ParentComponent, age=42")
 
         // Override without/with priority
-        parent.override(.name, value: "Overridden")
-        parent.override(.age, value: -1, priority: .custom(-1))
+        parent.bind("Overridden", forKey: .name)
+        parent.bind(-1, forKey: .age, priority: .custom(-1))
         XCTAssertEqual(parent.message, "I'm Overridden, age=42")
-        parent.override(.age, value: 99)
+        parent.bind(99, forKey: .age)
         XCTAssertEqual(parent.message, "I'm Overridden, age=99")
     }
 
-    func testOverrideWithInheritance() {
+    func testBindWithInheritance() {
         var parent = RootComponent().parentComponent
-        parent.override(.name, value: "Overridden")
+        parent.bind("Overridden", forKey: .name)
 
         // The .name property becomes the child component’s one, but .age remains overridden because the child component does not provide the .age property.
         var child = parent.childComponent
         XCTAssertEqual(child.message(), "I'm ChildComponent, age=42")
 
-        parent.override(.name, value: "Overridden", priority: .test)
+        parent.bind("Overridden", forKey: .name, priority: .test)
         child = parent.childComponent
         XCTAssertEqual(child.message(), "I'm Overridden, age=42")
     }
 
-    func testOverrideInChildAndUseInParent() {
+    func testBindInChildAndUseInParent() {
         var child = RootComponent().parentComponent.childComponent
         XCTAssertEqual(child.message(), "I'm ChildComponent, age=42")
-        child.override(.name, value: "Overridden")
+        child.bind("Overridden", forKey: .name)
         XCTAssertEqual(child.message(), "I'm Overridden, age=42")
     }
 }
