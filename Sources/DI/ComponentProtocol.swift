@@ -13,9 +13,9 @@ extension Component {
     }
 
     @inlinable
-    public mutating func override<I: Sendable>(
-        _ key: Key<I>,
+    public mutating func bind<I: Sendable>(
         value: I,
+        forKey key: Key<I>,
         priority: Priority = .default
     ) {
         for i in parents.indices {
