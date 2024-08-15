@@ -14,7 +14,7 @@ extension Component {
 
     @inlinable
     public mutating func bind<I: Sendable>(
-        value: I,
+        _ value: I,
         forKey key: Key<I>,
         priority: Priority = .default
     ) {

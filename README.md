@@ -94,7 +94,7 @@ component.printName() // TestComponent
 
 ### Manually Bind Value
 
-By using `bind(value:forKey:)`, you can procedurally override values.
+By using `bind(_:forKey:)`, you can procedurally override values.
 
 ```swift
 @Component
@@ -118,7 +118,7 @@ struct ChildComponent {
 
 var component = ChildComponent(parent: ParentComponent())
 component.printProfile() // name=ChildComponent, age=42
-component.bind(value: 10, forKey: .age)
+component.bind(10, forKey: .age)
 component.printProfile() // name=ChildComponent, age=10
 ```
 
