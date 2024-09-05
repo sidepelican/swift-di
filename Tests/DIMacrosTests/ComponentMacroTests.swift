@@ -243,7 +243,7 @@ public struct RootComponent {
 """#, expandedSource: #"""
 public struct RootComponent {
 
-    static var requirements: Set<DI.AnyKey> {
+    public static var requirements: Set<DI.AnyKey> {
         []
     }
 
@@ -273,7 +273,7 @@ public struct MyComponent {
 """#, expandedSource: #"""
 public struct MyComponent {
 
-    static var requirements: Set<DI.AnyKey> {
+    public static var requirements: Set<DI.AnyKey> {
         []
     }
 
