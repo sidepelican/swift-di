@@ -80,7 +80,7 @@ public struct ComponentMacro: MemberMacro, ExtensionMacro {
 
         var result: [any DeclSyntaxProtocol] = []
         result.append("""
-        static var requirements: Set<DI.AnyKey> {
+        \(declaration.modifiers)static var requirements: Set<DI.AnyKey> {
             [\(raw: requiredKeysSorted.map(\.description).joined(separator: ", "))]
         }
         """ as DeclSyntax)
