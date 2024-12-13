@@ -47,7 +47,7 @@ public struct ProvidesMacro: PeerMacro {
             result.append("""
             private func \(getterFuncName)(with components: [any DI.Component]) -> \(returnType.trimmed) {
                 func `get`<I>(_ key: Key<I>) -> I {
-                    self.container.get(key, with: components)
+                    self.get(key, with: components)
                 }
                 return {
                     \(SelfGetRewriter().visit(getterBlock).trimmed)

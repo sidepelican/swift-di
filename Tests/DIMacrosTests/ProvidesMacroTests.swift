@@ -26,7 +26,7 @@ struct RootComponent {
 
     private func __macro_local_10_apiClientfMu_(with components: [any DI.Component]) -> APIClient {
         func `get`<I>(_ key: Key<I>) -> I {
-            self.container.get(key, with: components)
+            self.get(key, with: components)
         }
         return {
             let config = get(.apiConfig)
@@ -137,7 +137,7 @@ struct RootComponent {
 
     private func __macro_local_11_urlSessionfMu_(with components: [any DI.Component]) -> URLSession {
         func `get`<I>(_ key: Key<I>) -> I {
-            self.container.get(key, with: components)
+            self.get(key, with: components)
         }
         return {
             .shared
@@ -183,7 +183,7 @@ struct RootComponent {
 
     private func __macro_local_11_urlSessionfMu_(with components: [any DI.Component]) -> URLSession {
         func `get`<I>(_ key: Key<I>) -> I {
-            self.container.get(key, with: components)
+            self.get(key, with: components)
         }
         return {
             .shared
