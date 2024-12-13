@@ -23,7 +23,7 @@ struct EmptyComponent {
 
     var container = DI.Container()
 
-    var parents = [any DI.Component] ()
+    var parents = [any DI.Component]()
 
     init(parent: some DI.Component) {
         initContainer(parent: parent)
@@ -54,7 +54,7 @@ struct RootComponent {
 
     var container = DI.Container()
 
-    var parents = [any DI.Component] ()
+    var parents = [any DI.Component]()
 
     init() {
         initContainer(parent: nil)
@@ -91,7 +91,7 @@ struct RootComponent {
 
     var container = DI.Container()
 
-    var parents = [any DI.Component] ()
+    var parents = [any DI.Component]()
 
     init() {
         initContainer(parent: nil)
@@ -161,7 +161,7 @@ struct AnonymousComponent {
 
     var container = DI.Container()
 
-    var parents = [any DI.Component] ()
+    var parents = [any DI.Component]()
 
     init(parent: some DI.Component) {
         initContainer(parent: parent)
@@ -217,7 +217,7 @@ struct MyComponent {
 
     var container = DI.Container()
 
-    var parents = [any DI.Component] ()
+    var parents = [any DI.Component]()
 
     init(parent: some DI.Component) {
         initContainer(parent: parent)
@@ -249,7 +249,7 @@ public struct RootComponent {
 
     public var container = DI.Container()
 
-    public var parents = [any DI.Component] ()
+    public var parents = [any DI.Component]()
 
     public init() {
         initContainer(parent: nil)
@@ -279,7 +279,7 @@ public struct MyComponent {
 
     public var container = DI.Container()
 
-    public var parents = [any DI.Component] ()
+    public var parents = [any DI.Component]()
 
     public init(parent: some DI.Component) {
         initContainer(parent: parent)
@@ -316,7 +316,7 @@ struct MyComponent {
 
     var container = DI.Container()
 
-    var parents = [any DI.Component] ()
+    var parents = [any DI.Component]()
 
     static var providingMetadata: ComponentProvidingMetadata<Self> {
         return ComponentProvidingMetadata<Self>()
@@ -389,7 +389,7 @@ struct MyComponent {
 
     var container = DI.Container()
 
-    var parents = [any DI.Component] ()
+    var parents = [any DI.Component]()
 
     init(parent: some DI.Component) {
         initContainer(parent: parent)
@@ -480,7 +480,7 @@ struct MyComponent {
 
     var container = DI.Container()
 
-    var parents = [any DI.Component] ()
+    var parents = [any DI.Component]()
 
     init(parent: some DI.Component) {
         initContainer(parent: parent)

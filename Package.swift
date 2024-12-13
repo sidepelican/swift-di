@@ -15,12 +15,12 @@ func swiftSettings() -> [SwiftSetting] {
 
 let package = Package(
     name: "swift-di",
-    platforms: [.macOS(.v13), .iOS(.v16)],
+    platforms: [.macOS(.v14), .iOS(.v16)],
     products: [
         .library(name: "DI", targets: ["DI"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-syntax.git", from: "510.0.2"),
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", "600.0.0"..<"999.0.0"),
     ],
     targets: [
         .target(
