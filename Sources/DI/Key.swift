@@ -12,7 +12,7 @@ public class AnyKey: Hashable, @unchecked Sendable {
     }
 }
 
-public final class Key<Instance>: AnyKey {
+public final class Key<Instance>: AnyKey, @unchecked Sendable {
     public override init() {
     }
     
