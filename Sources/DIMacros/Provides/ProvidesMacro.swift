@@ -39,7 +39,7 @@ public struct ProvidesMacro: PeerMacro {
 
         var result: [DeclSyntax] = []
         result.append("""
-        @Sendable private static func __provide_\(raw: keyFuncName)(`self`: Self, components: [any DI.Component]) -> \(returnType.trimmed) {
+        @Sendable private static func __provide_\(raw: keyFuncName)(`self`: Self) -> \(returnType.trimmed) {
             let instance = self.\(callExpr)
             assert({
                 let check = DI.VariantChecker(\(raw: keyIdentifier))

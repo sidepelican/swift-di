@@ -7,7 +7,7 @@ public struct ComponentProvidingMetadata<C>: Sendable {
 //    @inlinable
 //    public mutating func set<I>(
 //        for key: Key<I>,
-//        _ provide: @escaping @Sendable (C, [any Component]) -> I
+//        _ provide: @escaping @Sendable (C) -> I
 //    ) {
 //        self.table[key] = FunctionDescriptor(ref: provide)
 //    }
@@ -16,7 +16,7 @@ public struct ComponentProvidingMetadata<C>: Sendable {
     public func setter<I>(
         for key: Key<I>,
         priority: Priority
-    ) -> (inout Self, @escaping @Sendable (C, [any Component]) -> I) -> () {
+    ) -> (inout Self, @escaping @Sendable (C) -> I) -> () {
         return { `self`, provide in
             self.table[key] = ComponentFunctionElement(priority: priority, ref: provide)
         }
@@ -24,18 +24,18 @@ public struct ComponentProvidingMetadata<C>: Sendable {
 }
 
 public protocol FunctionTableElement: Sendable {
-    associatedtype ValueType
+    associatedtype ComponentType
     var priority: Priority { get }
 }
 
 @usableFromInline struct ComponentFunctionElement<C, I>: FunctionTableElement {
-    @usableFromInline init(priority: Priority, ref: @escaping @Sendable (C, [any Component]) -> I) {
+    @usableFromInline init(priority: Priority, ref: @escaping @Sendable (C) -> I) {
         self.priority = priority
         self.ref = ref
     }
-    @usableFromInline typealias ValueType = C
+    @usableFromInline typealias ComponentType = C
     @usableFromInline var priority: Priority
-    @usableFromInline var ref: @Sendable (C, [any Component]) -> I
+    @usableFromInline var ref: @Sendable (C) -> I
 }
 
 @usableFromInline enum ValueTypeForFixedValueElement {}
@@ -45,7 +45,7 @@ public protocol FunctionTableElement: Sendable {
         self.priority = priority
         self.value = value
     }
-    @usableFromInline typealias ValueType = ValueTypeForFixedValueElement
+    @usableFromInline typealias ComponentType = ValueTypeForFixedValueElement
     @usableFromInline var priority: Priority
     @usableFromInline var value: I
 }
@@ -76,7 +76,7 @@ public struct Container: Sendable {
     }
 
     @inlinable
-    public mutating func setFixed<Instance: Sendable>(
+    internal mutating func setFixed<Instance: Sendable>(
         _ key: Key<Instance>,
         priority: Priority,
         value: Instance
@@ -91,7 +91,7 @@ public struct Container: Sendable {
     }
 
     @inlinable
-    public func get<Instance>(
+    internal func get<Instance>(
         _ key: Key<Instance>,
         with components: [any Component]
     ) -> Instance {
@@ -106,8 +106,8 @@ public struct Container: Sendable {
 
         func openAndRun<E: FunctionTableElement>(_ element: E) -> Instance {
             func applyIfMatched<C: Component>(_ component: C, element: E) -> Instance? {
-                if E.ValueType.self == C.self {
-                    return (element as! ComponentFunctionElement<C, Instance>).ref(component, components)
+                if E.ComponentType.self == C.self {
+                    return (element as! ComponentFunctionElement<C, Instance>).ref(component)
                 }
                 return nil
             }
@@ -117,10 +117,10 @@ public struct Container: Sendable {
                 }
             }
 
-            if E.ValueType.self == ValueTypeForFixedValueElement.self {
+            if E.ComponentType.self == ValueTypeForFixedValueElement.self {
                 return (element as! FixedValueElement<Instance>).value
             }
-            preconditionFailure("Matched component not found. expected=\(E.ValueType.self), components=\(components.map({ type(of: $0) }))")
+            preconditionFailure("Matched component not found. expected=\(E.ComponentType.self), components=\(components.map({ type(of: $0) }))")
         }
     }
 }
