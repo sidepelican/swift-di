@@ -7,11 +7,8 @@ public protocol Component: Sendable {
 
 extension Component {
     @inlinable
-    public func get<I>(
-        _ key: Key<I>,
-        with components: [any Component]? = Components.current
-    ) -> I {
-        if let components {
+    public func get<I>(_ key: Key<I>) -> I {
+        if let components = Components.current {
             return container.get(key, with: components)
         }
         let components = parents + CollectionOfOne<any Component>(self)

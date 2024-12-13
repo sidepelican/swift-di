@@ -133,7 +133,7 @@ struct AnonymousComponent {
 
     private func __macro_local_10baseURLKeyfMu_(with components: [any DI.Component]) -> URL {
         func `get`<I>(_ key: Key<I>) -> I {
-            self.get(key, with: components)
+            self.container.get(key, with: components)
         }
         return {
             URL(string: "https://foo.example.com/\(get(.apiVersion))/")!
