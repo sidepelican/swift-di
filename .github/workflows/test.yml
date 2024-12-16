@@ -7,11 +7,28 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  test_macOS:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        xcode: [Xcode_15.4.app, Xcode_16.1.app]
     steps:
+      - run: sudo xcode-select -s /Applications/${{ matrix.xcode }}
       - uses: actions/checkout@v4
-      - run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      - run: swift test
+      - name: Build example
+        run: swift build
+        working-directory: example
+  test_Linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift: ["5.10", "6.0"]
+    steps:
+      - uses: vapor/swiftly-action@v0.1
+        with:
+          toolchain: ${{ matrix.swift }}
+      - uses: actions/checkout@v4
       - run: swift test
       - name: Build example
         run: swift build

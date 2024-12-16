@@ -1,3 +1,4 @@
+import Foundation
 import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
@@ -232,7 +233,7 @@ internal class CallArgumentsVisitor: SyntaxVisitor {
             exprString == $0.callExpression || exprString.hasPrefix($0.callExpression + ".")
         }) {
             let newNode = rawExprString.replacingOccurrences(of: providing.callExpression, with: "get(\(providing.arguments.key))")
-            
+
             diagnostics.append(
                 .init(
                     node: node.expression,
