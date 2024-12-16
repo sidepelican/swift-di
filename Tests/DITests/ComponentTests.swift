@@ -166,4 +166,32 @@ final class ComponentTests: XCTestCase {
         child.bind("Overridden", forKey: .name)
         XCTAssertEqual(child.message(), "I'm Overridden, age=42")
     }
+
+    enum GetWithoutProvideAnnotation {
+        @Component(root: true) struct RootComponent {
+            @Provides(.name) var name: String = "Root"
+
+            var description: String {
+                return get(.name)
+            }
+
+            @Provides(.message) func message() -> String {
+                return description
+            }
+        }
+
+        @Component struct ChildComponent {
+            @Provides(.name) var name: String = "Child"
+
+            func message() -> String {
+                return get(.message)
+            }
+        }
+    }
+
+    func testGetWithoutProvideAnnotation() {
+        let root = GetWithoutProvideAnnotation.RootComponent()
+        let child = GetWithoutProvideAnnotation.ChildComponent(parent: root)
+        XCTAssertEqual(child.message(), "Child")
+    }
 }

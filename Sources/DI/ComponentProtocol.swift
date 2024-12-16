@@ -8,8 +8,13 @@ public protocol Component: Sendable {
 extension Component {
     @inlinable
     public func get<I>(_ key: Key<I>) -> I {
+        if let components = Components.current {
+            return container.get(key, with: components)
+        }
         let components = parents + CollectionOfOne<any Component>(self)
-        return container.get(key, with: components)
+        return Components.dollarCurrent.withValue(components) {
+            return container.get(key, with: components)
+        }
     }
 
     @inlinable
@@ -37,5 +42,13 @@ extension Component {
         for i in parents.indices {
             parents[i].container = container
         }
+    }
+}
+
+@usableFromInline enum Components {
+    @TaskLocal
+    @usableFromInline static var current: [any Component]? = nil
+    @usableFromInline static var dollarCurrent: TaskLocal<[any Component]?> {
+        $current
     }
 }
