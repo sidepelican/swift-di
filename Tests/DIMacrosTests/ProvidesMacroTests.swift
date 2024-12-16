@@ -24,7 +24,7 @@ struct RootComponent {
         return APIClient(config: config)
     }
 
-    @Sendable private static func __provide__apiClient(`self`: Self, components: [any DI.Component]) -> APIClient {
+    @Sendable private static func __provide__apiClient(`self`: Self) -> APIClient {
         let instance = self.apiClient()
         assert({
             let check = DI.VariantChecker(.apiClient)
@@ -72,7 +72,7 @@ struct RootComponent {
 struct RootComponent {
     let urlSession: URLSession
 
-    @Sendable private static func __provide__urlSession(`self`: Self, components: [any DI.Component]) -> URLSession {
+    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
         let instance = self.urlSession
         assert({
             let check = DI.VariantChecker(.urlSession)
@@ -97,7 +97,7 @@ expandedSource: """
 struct RootComponent {
     var urlSession: URLSession
 
-    @Sendable private static func __provide__urlSession(`self`: Self, components: [any DI.Component]) -> URLSession {
+    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
         let instance = self.urlSession
         assert({
             let check = DI.VariantChecker(.urlSession)
@@ -125,7 +125,7 @@ struct RootComponent {
         .shared
     }
 
-    @Sendable private static func __provide__urlSession(`self`: Self, components: [any DI.Component]) -> URLSession {
+    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
         let instance = self.urlSession
         assert({
             let check = DI.VariantChecker(.urlSession)
@@ -162,7 +162,7 @@ struct RootComponent {
         }
     }
 
-    @Sendable private static func __provide__urlSession(`self`: Self, components: [any DI.Component]) -> URLSession {
+    @Sendable private static func __provide__urlSession(`self`: Self) -> URLSession {
         let instance = self.urlSession
         assert({
             let check = DI.VariantChecker(.urlSession)
